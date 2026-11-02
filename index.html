@@ -98,11 +98,17 @@
     <div id="templates-screen" class="screen" hidden>
       <header class="top-bar">
         <h1>Plantillas</h1>
-        <p id="templates-intro">Guardar crea una plantilla nueva con los botones de ahora. Cambiarlos después no la actualiza. Al recargar vuelven los de la última que hayas cargado o guardado. El total y la lista no se guardan.</p>
+        <p id="templates-intro">Guardar crea una plantilla nueva con los botones de ahora. Si después los cambias, la plantilla no se modifica hasta que pulses «Actualizar plantilla». Al recargar vuelven los de la última que hayas cargado, guardado o actualizado. El total y la lista no se guardan.</p>
         <p id="templates-storage-warning" class="storage-warning" role="alert" hidden></p>
       </header>
 
       <div class="config-body">
+        <div class="template-current">
+          <p id="template-in-use">Ninguna plantilla en uso</p>
+          <button type="button" id="template-update" class="template-action primary-action" disabled aria-disabled="true">Actualizar plantilla</button>
+          <p id="template-status" class="field-hint" role="status"></p>
+        </div>
+
         <form id="template-form" class="button-form" autocomplete="off">
           <label id="template-name-label" for="template-name">Nombre de la plantilla</label>
           <p id="template-name-hint" class="field-hint">De 1 a 30 caracteres. No se distinguen mayúsculas.</p>
@@ -112,8 +118,6 @@
             <button type="submit" id="template-save" class="primary-action">Guardar plantilla nueva</button>
           </div>
         </form>
-
-        <p id="template-status" class="field-hint" role="status"></p>
 
         <div id="templates-scroll" class="config-scroll">
           <h2 id="template-list-heading">Plantillas guardadas</h2>

@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Pruebas de las plantillas de botones (T-009).
+ * Pruebas de las plantillas de botones (T-009) y de actualizar la
+ * plantilla en uso (T-010).
  * Ejecutar desde la raíz del proyecto: node tests/storage.test.js
  * Solo usa node:assert y un almacén en memoria. Si algo falla, el
  * proceso termina con un código distinto de cero.
@@ -550,6 +551,326 @@ test('borrar la última usada deja lastUsed a null y renombrar la actualiza', fu
   assert.strictEqual(repo.removeTemplate('Beta').ok, true);
   assert.strictEqual(readSaved(storage).lastUsed, null);
   assert.deepStrictEqual(readSaved(storage).templates, [{ name: 'A', buttons: [100] }]);
+});
+
+/**
+ * Igual que la pantalla: solo escribe si el plan dice «update».
+ * confirmed false y botones distintos es cancelar: no se llama a
+ * updateTemplateButtons.
+ */
+function applyIfConfirmed(repo, currentButtons, confirmed) {
+  const name = repo.getLastUsedName();
+  let saved = null;
+  let index;
+  const items = repo.listTemplates();
+  for (index = 0; index < items.length; index += 1) {
+    if (items[index].name === name) {
+      saved = items[index].buttons;
+    }
+  }
+  const plan = Store.planTemplateUpdate({
+    lastUsed: name,
+    savedButtons: saved,
+    currentButtons: currentButtons,
+    confirmed: confirmed
+  });
+  if (plan.action !== 'update') {
+    return plan;
+  }
+  return repo.updateTemplateButtons(currentButtons);
+}
+
+test('actualizar sustituye los botones de la plantilla en uso y deja el nombre', function () {
+  const storage = memoryStorage();
+  let repo = Store.createRepository(storage);
+  assert.strictEqual(repo.saveTemplate('A', [100, 50, 25]).ok, true);
+  assert.strictEqual(repo.saveTemplate('B', [300]).ok, true);
+  assert.strictEqual(repo.useTemplate('A').ok, true);
+  assert.strictEqual(repo.getLastUsedName(), 'A');
+
+  const current = [200, 400];
+  const updated = repo.updateTemplateButtons(current);
+  assert.strictEqual(updated.ok, true);
+  assert.strictEqual(updated.unchanged, false);
+  assert.strictEqual(updated.name, 'A');
+  assert.strictEqual(updated.warning, '');
+  current.push(1);
+  current[0] = 5;
+  assert.deepStrictEqual(repo.listTemplates()[0].buttons, [200, 400]);
+  assert.strictEqual(repo.listTemplates()[0].name, 'A');
+  assert.strictEqual(repo.listTemplates()[0].isLastUsed, true);
+  assert.deepStrictEqual(repo.listTemplates()[1].buttons, [300]);
+  assert.strictEqual(repo.listTemplates()[1].name, 'B');
+  assert.strictEqual(repo.getLastUsedName(), 'A');
+
+  const data = readSaved(storage);
+  assert.strictEqual(data.lastUsed, 'A');
+  assert.deepStrictEqual(data.templates, [
+    { name: 'A', buttons: [200, 400] },
+    { name: 'B', buttons: [300] }
+  ]);
+  assert.deepStrictEqual(Object.keys(data).sort(), ['lastUsed', 'templates', 'version']);
+
+  repo = Store.createRepository(storage);
+  assert.strictEqual(repo.getWarning(), '');
+  assert.strictEqual(repo.getLastUsedName(), 'A');
+  assert.deepStrictEqual(repo.getStartupButtons(), [200, 400]);
+  assert.deepStrictEqual(repo.listTemplates()[0].buttons, [200, 400]);
+  assert.strictEqual(repo.listTemplates()[0].name, 'A');
+  assert.deepStrictEqual(repo.listTemplates()[1].buttons, [300]);
+  assert.strictEqual(readSaved(storage).lastUsed, 'A');
+});
+
+test('sin plantilla en uso no se escribe nada', function () {
+  const storage = memoryStorage();
+  const repo = Store.createRepository(storage);
+  const writes = storage.writes;
+  const missing = repo.updateTemplateButtons([100, 50]);
+  assert.strictEqual(missing.ok, false);
+  assert.strictEqual(missing.error, Store.ERROR_NO_TEMPLATE_IN_USE);
+  assert.strictEqual(storage.writes, writes);
+  assert.strictEqual(storage.getItem(Store.STORAGE_KEY), null);
+  assert.strictEqual(repo.getLastUsedName(), null);
+  assert.deepStrictEqual(repo.listTemplates(), []);
+
+  assert.strictEqual(repo.saveTemplate('A', [100]).ok, true);
+  assert.strictEqual(repo.removeTemplate('A').ok, true);
+  const afterDelete = storage.writes;
+  const raw = storage.getItem(Store.STORAGE_KEY);
+  const again = repo.updateTemplateButtons([200]);
+  assert.strictEqual(again.ok, false);
+  assert.strictEqual(again.error, Store.ERROR_NO_TEMPLATE_IN_USE);
+  assert.strictEqual(storage.writes, afterDelete);
+  assert.strictEqual(storage.getItem(Store.STORAGE_KEY), raw);
+  assert.deepStrictEqual(repo.listTemplates(), []);
+
+  const ghost = document([{ name: 'B', buttons: [300] }], 'Fantasma');
+  const seeded = memoryStorage();
+  seeded.setItem(Store.STORAGE_KEY, ghost);
+  const seededWrites = seeded.writes;
+  const reloaded = Store.createRepository(seeded);
+  assert.strictEqual(reloaded.getLastUsedName(), null);
+  assert.strictEqual(reloaded.getWarning(), Store.WARNING_PARTIAL);
+  const rejected = reloaded.updateTemplateButtons([100]);
+  assert.strictEqual(rejected.ok, false);
+  assert.strictEqual(rejected.error, Store.ERROR_NO_TEMPLATE_IN_USE);
+  assert.strictEqual(seeded.writes, seededWrites);
+  assert.strictEqual(seeded.getItem(Store.STORAGE_KEY), ghost);
+  assert.deepStrictEqual(reloaded.listTemplates()[0].buttons, [300]);
+});
+
+test('si los botones no cambian, setItem no se llama', function () {
+  const storage = memoryStorage();
+  const repo = Store.createRepository(storage);
+  assert.strictEqual(repo.saveTemplate('A', [100, 50, 25]).ok, true);
+  assert.strictEqual(repo.saveTemplate('B', [300]).ok, true);
+  assert.strictEqual(repo.useTemplate('A').ok, true);
+  const before = storage.getItem(Store.STORAGE_KEY);
+  let setCalls = 0;
+  const originalSet = storage.setItem;
+  storage.setItem = function (key, value) {
+    setCalls += 1;
+    return originalSet(key, value);
+  };
+  const same = repo.updateTemplateButtons([100, 50, 25]);
+  assert.strictEqual(same.ok, true);
+  assert.strictEqual(same.unchanged, true);
+  assert.strictEqual(same.name, 'A');
+  assert.strictEqual(setCalls, 0);
+  assert.strictEqual(storage.getItem(Store.STORAGE_KEY), before);
+  const copy = repo.updateTemplateButtons([100, 50, 25].slice());
+  assert.strictEqual(copy.unchanged, true);
+  assert.strictEqual(setCalls, 0);
+  /* Mismo conjunto, otro orden: sí es un cambio y sí se escribe. */
+  const reordered = repo.updateTemplateButtons([25, 100, 50]);
+  assert.strictEqual(reordered.ok, true);
+  assert.strictEqual(reordered.unchanged, false);
+  assert.strictEqual(reordered.name, 'A');
+  assert.strictEqual(setCalls, 1);
+  assert.deepStrictEqual(readSaved(storage).templates[0].buttons, [25, 100, 50]);
+  assert.strictEqual(readSaved(storage).templates[0].name, 'A');
+  assert.deepStrictEqual(readSaved(storage).templates[1].buttons, [300]);
+  assert.strictEqual(readSaved(storage).lastUsed, 'A');
+  assert.strictEqual(Store.sameButtonList([100, 50], [100, 50]), true);
+  assert.strictEqual(Store.sameButtonList([100, 50], [50, 100]), false);
+});
+
+test('si setItem lanza, la memoria y el almacén siguen igual', function () {
+  const raw = document([
+    { name: 'A', buttons: [100, 50] },
+    { name: 'B', buttons: [300] }
+  ], 'A');
+  const quota = storageSetThrows();
+  quota.getItem = function (key) {
+    if (key === Store.STORAGE_KEY) {
+      return raw;
+    }
+    return null;
+  };
+  const repo = Store.createRepository(quota);
+  assert.deepStrictEqual(repo.getStartupButtons(), [100, 50]);
+  const writesBefore = quota.writes;
+  const blocked = repo.updateTemplateButtons([200, 400]);
+  assert.strictEqual(blocked.ok, false);
+  assert.strictEqual(blocked.error, Store.ERROR_STORAGE_WRITE);
+  assert.strictEqual(blocked.warning, Store.ERROR_STORAGE_WRITE);
+  assert.ok(quota.writes > writesBefore);
+  assert.strictEqual(quota.getItem(Store.STORAGE_KEY), raw);
+  assert.deepStrictEqual(repo.listTemplates()[0].buttons, [100, 50]);
+  assert.strictEqual(repo.listTemplates()[0].name, 'A');
+  assert.strictEqual(repo.listTemplates()[0].isLastUsed, true);
+  assert.deepStrictEqual(repo.listTemplates()[1].buttons, [300]);
+  assert.strictEqual(repo.getLastUsedName(), 'A');
+  assert.deepStrictEqual(repo.getStartupButtons(), [100, 50]);
+});
+
+test('botones inválidos no actualizan la plantilla', function () {
+  const storage = memoryStorage();
+  const repo = Store.createRepository(storage);
+  assert.strictEqual(repo.saveTemplate('A', [100, 50]).ok, true);
+  const before = storage.getItem(Store.STORAGE_KEY);
+  const writes = storage.writes;
+  const thirteen = [];
+  let cents;
+  for (cents = 1; cents <= 13; cents += 1) {
+    thirteen.push(cents);
+  }
+  const rejected = [
+    [],
+    [0],
+    [10001],
+    [100, 100],
+    [100, 50, 100],
+    ['1'],
+    null,
+    thirteen,
+    [1.5]
+  ];
+  rejected.forEach(function (buttons) {
+    const result = repo.updateTemplateButtons(buttons);
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.error, Store.ERROR_BUTTONS_INVALID);
+  });
+  assert.strictEqual(storage.writes, writes);
+  assert.strictEqual(storage.getItem(Store.STORAGE_KEY), before);
+  assert.deepStrictEqual(repo.listTemplates()[0].buttons, [100, 50]);
+  assert.strictEqual(repo.getLastUsedName(), 'A');
+});
+
+test('cancelar es una decisión pura y no escribe', function () {
+  const cancel = Store.planTemplateUpdate({
+    lastUsed: 'A',
+    savedButtons: [100, 50],
+    currentButtons: [200],
+    confirmed: false
+  });
+  assert.strictEqual(cancel.action, 'cancel');
+  assert.strictEqual(cancel.name, 'A');
+  assert.deepStrictEqual(cancel.buttons, [200]);
+
+  const needsConfirm = Store.planTemplateUpdate({
+    lastUsed: 'A',
+    savedButtons: [100, 50],
+    currentButtons: [50, 100],
+    confirmed: false
+  });
+  assert.strictEqual(needsConfirm.action, 'cancel');
+
+  const same = Store.planTemplateUpdate({
+    lastUsed: 'A',
+    savedButtons: [100, 50],
+    currentButtons: [100, 50],
+    confirmed: false
+  });
+  assert.strictEqual(same.action, 'unchanged');
+  assert.strictEqual(same.name, 'A');
+
+  const proceed = Store.planTemplateUpdate({
+    lastUsed: 'A',
+    savedButtons: [100, 50],
+    currentButtons: [200],
+    confirmed: true
+  });
+  assert.strictEqual(proceed.action, 'update');
+  assert.deepStrictEqual(proceed.buttons, [200]);
+
+  const noTemplate = Store.planTemplateUpdate({
+    lastUsed: null,
+    savedButtons: null,
+    currentButtons: [200],
+    confirmed: true
+  });
+  assert.strictEqual(noTemplate.action, 'reject');
+  assert.strictEqual(noTemplate.error, Store.ERROR_NO_TEMPLATE_IN_USE);
+
+  const invalid = Store.planTemplateUpdate({
+    lastUsed: 'A',
+    savedButtons: [100],
+    currentButtons: [0],
+    confirmed: true
+  });
+  assert.strictEqual(invalid.action, 'reject');
+  assert.strictEqual(invalid.error, Store.ERROR_BUTTONS_INVALID);
+
+  const storage = memoryStorage();
+  const repo = Store.createRepository(storage);
+  assert.strictEqual(repo.saveTemplate('A', [100, 50]).ok, true);
+  assert.strictEqual(repo.saveTemplate('B', [300]).ok, true);
+  assert.strictEqual(repo.useTemplate('A').ok, true);
+  const before = storage.getItem(Store.STORAGE_KEY);
+  let setCalls = 0;
+  const originalSet = storage.setItem;
+  storage.setItem = function (key, value) {
+    setCalls += 1;
+    return originalSet(key, value);
+  };
+  const skipped = applyIfConfirmed(repo, [200, 400], false);
+  assert.strictEqual(skipped.action, 'cancel');
+  assert.strictEqual(setCalls, 0);
+  assert.strictEqual(storage.getItem(Store.STORAGE_KEY), before);
+  assert.deepStrictEqual(repo.listTemplates()[0].buttons, [100, 50]);
+  assert.strictEqual(repo.listTemplates()[0].name, 'A');
+
+  const done = applyIfConfirmed(repo, [200, 400], true);
+  assert.strictEqual(done.ok, true);
+  assert.strictEqual(done.unchanged, false);
+  assert.strictEqual(setCalls, 1);
+  assert.deepStrictEqual(readSaved(storage).templates[0].buttons, [200, 400]);
+  assert.strictEqual(readSaved(storage).templates[0].name, 'A');
+  assert.deepStrictEqual(readSaved(storage).templates[1], { name: 'B', buttons: [300] });
+  assert.strictEqual(readSaved(storage).lastUsed, 'A');
+});
+
+test('actualizar no mete la suma en lo guardado', function () {
+  const storage = memoryStorage();
+  const repo = Store.createRepository(storage);
+  let state = Calc.createState();
+  state = Calc.addValue(state, Calc.parseToCents('1').cents);
+  state = Calc.addValue(state, Calc.parseToCents('0,5').cents);
+  state = Calc.addValue(state, Calc.parseToCents('0,25').cents);
+  assert.strictEqual(Calc.formatCents(Calc.getTotal(state)), '1,75');
+  assert.deepStrictEqual(Calc.getList(state), [100, 50, 25]);
+
+  assert.strictEqual(repo.saveTemplate('A', [100]).ok, true);
+  assert.strictEqual(repo.saveTemplate('B', [200]).ok, true);
+  assert.strictEqual(repo.useTemplate('A').ok, true);
+  const updated = repo.updateTemplateButtons([400, 500]);
+  assert.strictEqual(updated.ok, true);
+  assert.strictEqual(Calc.getTotal(state), 175);
+  assert.deepStrictEqual(Calc.getList(state), [100, 50, 25]);
+  assert.strictEqual(Calc.formatCents(Calc.getTotal(state)), '1,75');
+
+  const raw = storage.getItem(Store.STORAGE_KEY);
+  const data = JSON.parse(raw);
+  assert.deepStrictEqual(Object.keys(data).sort(), ['lastUsed', 'templates', 'version']);
+  assert.deepStrictEqual(data.templates[0], { name: 'A', buttons: [400, 500] });
+  assert.deepStrictEqual(data.templates[1], { name: 'B', buttons: [200] });
+  assert.strictEqual(data.lastUsed, 'A');
+  assert.strictEqual(raw.includes('"total"'), false);
+  assert.strictEqual(raw.includes('"values"'), false);
+  assert.strictEqual(raw.includes('"list"'), false);
+  assert.strictEqual(raw.includes('"state"'), false);
+  assert.strictEqual(storage.getItem('total'), null);
 });
 
 test('0,1 + 0,2 siguen siendo 0,30 al validar botones de plantilla', function () {

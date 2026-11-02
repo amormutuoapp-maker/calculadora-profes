@@ -1,5 +1,6 @@
 /**
- * Calculadora para profesores — plantillas de botones (T-009, v0.3.0).
+ * Calculadora para profesores — plantillas de botones (T-009, v0.3.0;
+ * actualizar la plantilla en uso, T-010).
  *
  * Capa pura: no toca la página, no conoce el total ni la lista de la
  * suma y no usa la red. La pantalla le pasa el almacén ya obtenido
@@ -21,12 +22,26 @@
  * se borra lo que hubiera. Las plantillas que no pasen la validación
  * (nombre o botones) se descartan y se conservan las demás; el aviso
  * lo pinta la pantalla. La primera acción del profesor que sí guarda
- * (guardar, cargar, renombrar o borrar) escribe un documento válido y,
- * a partir de ahí, sustituye el valor anterior.
+ * (guardar, cargar, renombrar, borrar o actualizar) escribe un
+ * documento válido y, a partir de ahí, sustituye el valor anterior.
  *
- * «Usada» es la última plantilla cargada o recién guardada. No existe
- * la acción de sobrescribir una plantilla: si se cargan sus botones y
- * luego se editan, lo guardado no cambia.
+ * «Usada» es la última plantilla cargada, recién guardada o recién
+ * actualizada. Editar los botones de la calculadora no cambia la
+ * plantilla guardada: hace falta updateTemplateButtons, que sustituye
+ * los botones de la plantilla en uso (lastUsed). El nombre no cambia
+ * y lastUsed sigue siendo esa plantilla. Las demás plantillas no se
+ * tocan. La suma no entra en la operación.
+ *
+ * Comparación (decisión): dos listas son la misma solo si tienen los
+ * mismos céntimos en el mismo orden. [100, 50] y [50, 100] son
+ * distintas, porque el orden es el de los botones en la pantalla. No
+ * se ordenan ni se comparan como conjunto. Si son iguales, no se
+ * escribe ni se pide confirmación (la confirmación la decide la
+ * pantalla con planTemplateUpdate).
+ *
+ * updateTemplateButtons valida con las reglas de la v0.2.0, escribe
+ * el documento y solo si setItem termina bien cambia la memoria. Si
+ * setItem lanza o el almacén no está, la memoria queda como estaba.
  *
  * Nombres: se recortan los extremos, de 1 a 30 caracteres (length de
  * JavaScript, unidades UTF-16, igual que maxlength). La comparación
@@ -68,6 +83,7 @@
   var ERROR_NAME_DUPLICATE = 'Ya hay una plantilla con ese nombre.';
   var ERROR_MAX_TEMPLATES = 'No se pueden guardar más de 20 plantillas.';
   var ERROR_NOT_FOUND = 'Esa plantilla no existe.';
+  var ERROR_NO_TEMPLATE_IN_USE = 'No hay ninguna plantilla en uso.';
   var ERROR_BUTTONS_INVALID = 'Esos botones no se pueden guardar en una plantilla.';
   var ERROR_STORAGE_UNAVAILABLE = 'No se puede guardar en este dispositivo. La calculadora funciona, pero las plantillas no se recordarán.';
   var ERROR_STORAGE_WRITE = 'No se ha podido guardar este cambio. La calculadora sigue funcionando.';
@@ -122,6 +138,73 @@
       buttons = added.buttons;
     }
     return buttons;
+  }
+
+  /**
+   * Misma lista de céntimos, en el mismo orden. Un orden distinto es
+   * un cambio: no se reordena ni se trata como un conjunto.
+   * No modifica los arrays.
+   */
+  function sameButtonList(left, right) {
+    var index;
+    if (!Array.isArray(left) || !Array.isArray(right)) {
+      return false;
+    }
+    if (left.length !== right.length) {
+      return false;
+    }
+    for (index = 0; index < left.length; index += 1) {
+      if (left[index] !== right[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Decisión de «Actualizar plantilla», sin almacén y sin memoria.
+   * La pantalla la usa antes de confirmar y antes de escribir.
+   *
+   * Orden, de lo más conservador a lo que sí cambia datos:
+   * 1. Sin nombre de plantilla en uso → reject. No hay nada que tocar.
+   * 2. Botones que no pasan la v0.2.0 → reject.
+   * 3. Mismos céntimos y mismo orden → unchanged. No se confirma
+   *    y no se escribe, aunque confirmed sea false.
+   * 4. confirmed distinto de true → cancel. Quien llama no debe
+   *    escribir: es el caso de window.confirm cancelado.
+   * 5. confirmed true → update. Entonces sí se puede llamar a
+   *    updateTemplateButtons.
+   *
+   * No escribe. No lee el almacén. No modifica los arrays recibidos.
+   */
+  function planTemplateUpdate(spec) {
+    var validButtons;
+    if (!spec || typeof spec.lastUsed !== 'string' || spec.lastUsed.length === 0) {
+      return { action: 'reject', error: ERROR_NO_TEMPLATE_IN_USE };
+    }
+    validButtons = validateButtonList(spec.currentButtons);
+    if (validButtons === null) {
+      return { action: 'reject', error: ERROR_BUTTONS_INVALID };
+    }
+    if (sameButtonList(spec.savedButtons, validButtons)) {
+      return {
+        action: 'unchanged',
+        name: spec.lastUsed,
+        buttons: validButtons
+      };
+    }
+    if (spec.confirmed !== true) {
+      return {
+        action: 'cancel',
+        name: spec.lastUsed,
+        buttons: validButtons
+      };
+    }
+    return {
+      action: 'update',
+      name: spec.lastUsed,
+      buttons: validButtons
+    };
   }
 
   /**
@@ -335,30 +418,38 @@
     var warning = loaded.warning;
     var available = loaded.available;
 
-    function payload() {
+    /**
+     * Escribe un documento ya montado. No cambia templates, lastUsed
+     * ni el aviso: quien llama decide si actualiza la memoria.
+     */
+    function writeSnapshot(nextTemplates, nextLastUsed) {
       var list = [];
       var index;
-      for (index = 0; index < templates.length; index += 1) {
-        list.push({
-          name: templates[index].name,
-          buttons: copyButtons(templates[index].buttons)
-        });
-      }
-      return {
-        version: STORAGE_VERSION,
-        templates: list,
-        lastUsed: lastUsed
-      };
-    }
-
-    function persist() {
       if (!available) {
         return { ok: false, error: ERROR_STORAGE_UNAVAILABLE };
       }
+      for (index = 0; index < nextTemplates.length; index += 1) {
+        list.push({
+          name: nextTemplates[index].name,
+          buttons: copyButtons(nextTemplates[index].buttons)
+        });
+      }
       try {
-        storage.setItem(STORAGE_KEY, JSON.stringify(payload()));
+        storage.setItem(STORAGE_KEY, JSON.stringify({
+          version: STORAGE_VERSION,
+          templates: list,
+          lastUsed: nextLastUsed
+        }));
       } catch (writeError) {
         return { ok: false, error: ERROR_STORAGE_WRITE };
+      }
+      return { ok: true };
+    }
+
+    function persist() {
+      var written = writeSnapshot(templates, lastUsed);
+      if (!written.ok) {
+        return written;
       }
       warning = '';
       return { ok: true };
@@ -370,6 +461,20 @@
 
     function getWarning() {
       return warning;
+    }
+
+    /**
+     * Nombre exacto de la plantilla en uso, o null si lastUsed es
+     * null o ya no está en la lista.
+     */
+    function getLastUsedName() {
+      if (lastUsed === null) {
+        return null;
+      }
+      if (findExact(templates, lastUsed) === -1) {
+        return null;
+      }
+      return lastUsed;
     }
 
     /**
@@ -549,14 +654,74 @@
       return { ok: true, warning: warning };
     }
 
+    /**
+     * Sustituye los botones de la plantilla en uso por buttonList.
+     * El nombre y lastUsed no cambian. Las demás plantillas tampoco.
+     * No recibe el estado de la suma: no puede guardarlo ni borrarlo.
+     *
+     * Primero valida. Si los céntimos coinciden en el mismo orden, no
+     * llama a setItem. Si hay que guardar, escribe el documento nuevo
+     * y solo entonces cambia la memoria. Un fallo de escritura deja
+     * la memoria y, si setItem lanzó antes de sustituir el valor, el
+     * almacén como estaban.
+     */
+    function updateTemplateButtons(buttonList) {
+      var index;
+      var validButtons;
+      var nextTemplates;
+      var cursor;
+      var written;
+      if (lastUsed === null) {
+        return failure(ERROR_NO_TEMPLATE_IN_USE);
+      }
+      index = findExact(templates, lastUsed);
+      if (index === -1) {
+        return failure(ERROR_NO_TEMPLATE_IN_USE);
+      }
+      validButtons = validateButtonList(buttonList);
+      if (validButtons === null) {
+        return failure(ERROR_BUTTONS_INVALID);
+      }
+      if (sameButtonList(templates[index].buttons, validButtons)) {
+        return {
+          ok: true,
+          unchanged: true,
+          name: templates[index].name,
+          warning: warning
+        };
+      }
+      nextTemplates = [];
+      for (cursor = 0; cursor < templates.length; cursor += 1) {
+        nextTemplates.push({
+          name: templates[cursor].name,
+          buttons: cursor === index ? copyButtons(validButtons) : copyButtons(templates[cursor].buttons)
+        });
+      }
+      written = writeSnapshot(nextTemplates, lastUsed);
+      if (!written.ok) {
+        warning = written.error;
+        return failure(written.error);
+      }
+      templates = nextTemplates;
+      warning = '';
+      return {
+        ok: true,
+        unchanged: false,
+        name: templates[index].name,
+        warning: warning
+      };
+    }
+
     return {
       getWarning: getWarning,
+      getLastUsedName: getLastUsedName,
       getStartupButtons: getStartupButtons,
       listTemplates: listTemplates,
       saveTemplate: saveTemplate,
       useTemplate: useTemplate,
       renameTemplate: renameTemplate,
-      removeTemplate: removeTemplate
+      removeTemplate: removeTemplate,
+      updateTemplateButtons: updateTemplateButtons
     };
   }
 
@@ -593,6 +758,7 @@
     ERROR_NAME_DUPLICATE: ERROR_NAME_DUPLICATE,
     ERROR_MAX_TEMPLATES: ERROR_MAX_TEMPLATES,
     ERROR_NOT_FOUND: ERROR_NOT_FOUND,
+    ERROR_NO_TEMPLATE_IN_USE: ERROR_NO_TEMPLATE_IN_USE,
     ERROR_BUTTONS_INVALID: ERROR_BUTTONS_INVALID,
     ERROR_STORAGE_UNAVAILABLE: ERROR_STORAGE_UNAVAILABLE,
     ERROR_STORAGE_WRITE: ERROR_STORAGE_WRITE,
@@ -600,6 +766,8 @@
     WARNING_PARTIAL: WARNING_PARTIAL,
     nameKey: nameKey,
     validateButtonList: validateButtonList,
+    sameButtonList: sameButtonList,
+    planTemplateUpdate: planTemplateUpdate,
     createRepository: createRepository,
     openBrowserStorage: openBrowserStorage
   };

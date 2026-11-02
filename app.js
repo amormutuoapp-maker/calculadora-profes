@@ -2,7 +2,7 @@
 
 /**
  * Calculadora para profesores — pantalla (T-003, T-004, T-005, T-007,
- * T-008 y T-009, v0.3.0).
+ * T-008, T-009 y T-010, v0.3.0).
  *
  * Conecta la página con Calc y con ButtonStore. Los botones de suma
  * salen de la última plantilla usada. Si no hay ninguna, si se borró
@@ -15,19 +15,25 @@
  * «Configurar botones» añade, edita y quita valores con la validación
  * de Calc. Un texto inválido no crea ni cambia un botón. Con un solo
  * botón, Quitar queda desactivado. Cambiar los botones no toca el
- * total ni la lista, y tampoco modifica la plantilla ya guardada:
- * no hay acción de sobrescribir. Al recargar se ven los botones
- * guardados de la última plantilla cargada o recién guardada.
+ * total ni la lista. Tampoco modifica la plantilla guardada hasta que
+ * se pulsa «Actualizar plantilla»: esa acción sustituye los botones
+ * de la plantilla en uso y deja el nombre y lastUsed iguales. Al
+ * recargar se ven los botones guardados de la última plantilla
+ * cargada, guardada o actualizada.
  *
- * «Plantillas» guarda una plantilla nueva, carga, renombra y borra.
- * Borrar pide window.confirm. Guardar, cargar y renombrar no. Los
- * errores de nombre salen junto al campo. Si el almacén no está o
- * los datos están dañados, la suma sigue y el aviso queda en pantalla.
+ * «Plantillas» guarda una plantilla nueva, carga, renombra, actualiza
+ * y borra. Borrar y actualizar (cuando los botones cambian) piden
+ * window.confirm. Guardar, cargar y renombrar no. Si los botones
+ * actuales ya son los de la plantilla, actualizar no pregunta y no
+ * escribe. Los errores de nombre salen junto al campo. Si el almacén
+ * no está o los datos están dañados, la suma sigue y el aviso queda
+ * en pantalla. Actualizar no cambia el total ni la lista.
  *
  * La etiqueta visible de cada botón de suma es Calc.formatCents.
  * El número de pregunta (P1, P2, ...) es el índice más uno al pintar.
  * El total y la lista viven solo en memoria: no se guardan, y cargar
- * una plantilla no los cambia. Los nombres se pintan con textContent.
+ * o actualizar una plantilla no los cambia. Los nombres se pintan
+ * con textContent.
  */
 
 var RESET_CONFIRM_MESSAGE = '¿Reiniciar la calculadora? Se borrarán el total y todos los valores.';
@@ -142,6 +148,14 @@ function deleteConfirmMessage(name) {
   return '¿Borrar la plantilla «' + name + '»? No cambia el total ni la lista.';
 }
 
+function updateConfirmMessage(name) {
+  return '¿Actualizar «' + name + '» con los botones actuales?';
+}
+
+function unchangedTemplateMessage(name) {
+  return 'La plantilla «' + name + '» ya tiene estos botones.';
+}
+
 function initApp() {
   var totalElement = document.getElementById('total');
   var listElement = document.getElementById('value-list');
@@ -171,6 +185,8 @@ function initApp() {
   var templateNameInput = document.getElementById('template-name');
   var templateNameError = document.getElementById('template-name-error');
   var templateStatus = document.getElementById('template-status');
+  var templateInUse = document.getElementById('template-in-use');
+  var templateUpdateButton = document.getElementById('template-update');
   var templateList = document.getElementById('template-list');
   var templateEmpty = document.getElementById('template-empty');
   var repo = ButtonStore.createRepository(ButtonStore.openBrowserStorage());
@@ -569,6 +585,19 @@ function initApp() {
     return card;
   }
 
+  function renderTemplateInUse() {
+    var name = repo.getLastUsedName();
+    if (name === null) {
+      templateInUse.textContent = 'Ninguna plantilla en uso';
+      templateUpdateButton.disabled = true;
+      templateUpdateButton.setAttribute('aria-disabled', 'true');
+      return;
+    }
+    templateInUse.textContent = 'Plantilla en uso: ' + name;
+    templateUpdateButton.disabled = false;
+    templateUpdateButton.setAttribute('aria-disabled', 'false');
+  }
+
   function renderTemplateList() {
     var items = repo.listTemplates();
     var index;
@@ -577,6 +606,79 @@ function initApp() {
     for (index = 0; index < items.length; index += 1) {
       templateList.appendChild(createTemplateCard(items[index]));
     }
+    renderTemplateInUse();
+  }
+
+  /**
+   * Sustituye los botones de la plantilla en uso. No toca el total
+   * ni la lista. Si se cancela el confirm, no llama al almacén.
+   */
+  function onUpdateTemplate() {
+    var name = repo.getLastUsedName();
+    var savedButtons = null;
+    var items;
+    var index;
+    var plan;
+    var accepted;
+    var result;
+    if (templateUpdateButton.disabled || name === null) {
+      return;
+    }
+    items = repo.listTemplates();
+    for (index = 0; index < items.length; index += 1) {
+      if (items[index].name === name) {
+        savedButtons = items[index].buttons;
+        break;
+      }
+    }
+    plan = ButtonStore.planTemplateUpdate({
+      lastUsed: name,
+      savedButtons: savedButtons,
+      currentButtons: buttons,
+      confirmed: false
+    });
+    if (plan.action === 'unchanged') {
+      setTemplateStatus(unchangedTemplateMessage(plan.name));
+      return;
+    }
+    if (plan.action === 'reject') {
+      setTemplateStatus(plan.error || '');
+      return;
+    }
+    if (plan.action !== 'cancel') {
+      return;
+    }
+    accepted = window.confirm(updateConfirmMessage(plan.name));
+    if (!accepted) {
+      return;
+    }
+    plan = ButtonStore.planTemplateUpdate({
+      lastUsed: name,
+      savedButtons: savedButtons,
+      currentButtons: buttons,
+      confirmed: true
+    });
+    if (plan.action === 'unchanged') {
+      setTemplateStatus(unchangedTemplateMessage(plan.name));
+      return;
+    }
+    if (plan.action !== 'update') {
+      setTemplateStatus(plan.error || '');
+      return;
+    }
+    result = repo.updateTemplateButtons(buttons);
+    showStorageWarning(result.warning);
+    if (!result.ok) {
+      setTemplateStatus(result.error || '');
+      renderTemplateInUse();
+      return;
+    }
+    if (result.unchanged) {
+      setTemplateStatus(unchangedTemplateMessage(result.name));
+      return;
+    }
+    setTemplateStatus('Plantilla actualizada. El total y la lista siguen igual.');
+    renderTemplateList();
   }
 
   function openConfig() {
@@ -651,7 +753,7 @@ function initApp() {
     renamingName = null;
     renameDraft = '';
     renameError = '';
-    setTemplateStatus('Plantilla guardada. Si cambias los botones, la plantilla no se modifica.');
+    setTemplateStatus('Plantilla guardada. Si cambias los botones, no se modifican hasta que pulses «Actualizar plantilla».');
     renderTemplateList();
     templateNameInput.focus();
   }
@@ -662,6 +764,7 @@ function initApp() {
   renderSumButtons();
   paint();
   showStorageWarning(repo.getWarning());
+  renderTemplateInUse();
 
   openConfigButton.addEventListener('click', openConfig);
   openTemplatesButton.addEventListener('click', openTemplates);
@@ -673,6 +776,7 @@ function initApp() {
   });
   form.addEventListener('submit', onSubmit);
   templateForm.addEventListener('submit', onTemplateSubmit);
+  templateUpdateButton.addEventListener('click', onUpdateTemplate);
 }
 
 initApp();
