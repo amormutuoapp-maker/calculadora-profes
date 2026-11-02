@@ -14,7 +14,7 @@
 <body>
   <header>
     <h1>Calculadora para profesores</h1>
-    <p>Suma 1, 0,5 o 0,25. Cada pulsación se añade al total.</p>
+    <p>Suma 1, 0,5 o 0,25. Puedes borrar el último valor o reiniciar.</p>
   </header>
 
   <main>
@@ -33,6 +33,19 @@
       <h2 id="buttons-heading">Botones</h2>
       <!-- app.js crea aquí los tres botones fijos, con createElement. -->
       <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
+    </section>
+
+    <section aria-labelledby="undo-heading">
+      <h2 id="undo-heading">Corregir</h2>
+      <!-- app.js crea «Borrar último» con createElement. Sin confirmación. -->
+      <div id="undo-buttons" class="undo-buttons" role="group" aria-label="Borrar el último valor"></div>
+    </section>
+
+    <section class="reset-zone" aria-labelledby="reset-heading">
+      <h2 id="reset-heading">Reiniciar</h2>
+      <p>Apartado del resto. Pide confirmación antes de borrar el total y la lista.</p>
+      <!-- app.js crea «Reset» con createElement. -->
+      <div id="reset-buttons" class="reset-buttons" role="group" aria-label="Reiniciar la calculadora"></div>
     </section>
   </main>
 </body>
