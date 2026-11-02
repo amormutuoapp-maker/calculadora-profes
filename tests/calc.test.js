@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Pruebas de la lógica de suma (T-002).
+ * Pruebas de la lógica de suma (T-002) y de formatos aceptados en T-008.
  * Ejecutar desde la raíz del proyecto: node tests/calc.test.js
  * Solo usa node:assert. Si algo falla, el proceso termina con código 1.
  * Este fichero no forma parte de la página.
@@ -246,6 +246,21 @@ test('en cada paso el total coincide con la suma de la lista', function () {
   external.push(999);
   assert.deepStrictEqual(Calc.getList(state), [150]);
   assert.strictEqual(Calc.getTotal(state), 150);
+});
+
+test('acepta ".5" (0,50), "1," (1,00) y recorta espacios', function () {
+  assert.strictEqual(mustParse('.5'), 50);
+  assert.strictEqual(mustParse(',5'), 50);
+  assert.strictEqual(mustParse('  .5  '), 50);
+  assert.strictEqual(mustParse('1,'), 100);
+  assert.strictEqual(mustParse('1.'), 100);
+  assert.strictEqual(mustParse('  2,25  '), 225);
+  assert.strictEqual(Calc.formatCents(mustParse('.5')), '0,50');
+  assert.strictEqual(Calc.formatCents(mustParse('1,')), '1,00');
+  mustReject('.', 'El formato decimal no es válido.');
+  mustReject(',', 'El formato decimal no es válido.');
+  mustReject('1e2', 'No se admite la notación científica.');
+  mustReject('1E2', 'No se admite la notación científica.');
 });
 
 test('formato de varios valores', function () {
