@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculadora para profesores</title>
+  <!-- Icono vacío para no pedir favicon al servidor. -->
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Calculadora para profesores</h1>
+    <p>Versión inicial: solo la estructura de la pantalla.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="total-heading">
+      <h2 id="total-heading">Total</h2>
+      <output id="total" class="total-value" aria-live="polite" aria-atomic="true">—</output>
+    </section>
+
+    <section aria-labelledby="list-heading">
+      <h2 id="list-heading">Lista de valores</h2>
+      <p id="list-placeholder">Todavía no hay valores.</p>
+      <ul id="value-list" aria-labelledby="list-heading"></ul>
+    </section>
+
+    <section aria-labelledby="buttons-heading">
+      <h2 id="buttons-heading">Botones</h2>
+      <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
+      <p id="buttons-placeholder">Los botones de suma se añadirán más adelante.</p>
+    </section>
+  </main>
+</body>
+</html>

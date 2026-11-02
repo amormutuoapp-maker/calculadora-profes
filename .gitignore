@@ -1,0 +1,43 @@
+# Claves y secretos
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.keystore
+secrets/
+credentials.json
+service-account*.json
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Ficheros temporales
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.cache/
+tmp/
+temp/
+
+# Registros
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencias instaladas en local (la aplicación no las usa)
+node_modules/
