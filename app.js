@@ -3,7 +3,8 @@
 /**
  * Calculadora para profesores — botones de suma, borrar y reiniciar
  * (T-003 y T-004, v0.1.0). En T-005, tras pintar, la lista se
- * desplaza hasta el final dentro de su propia zona.
+ * desplaza hasta el final dentro de su propia zona. En T-007, cada
+ * línea muestra el número de pregunta según su posición al pintarla.
  *
  * Conecta la pantalla con el objeto global Calc. Hay tres botones
  * fijos de suma. La etiqueta visible es el importe: se convierte una
@@ -14,7 +15,10 @@
  *
  * Este fichero no suma importes ni hace aritmética con decimales
  * en coma flotante. El total y la lista se vuelven a pintar tras
- * cada acción con Calc.formatCents (coma y dos decimales).
+ * cada acción con Calc.formatCents (coma y dos decimales). El número
+ * de pregunta (P1, P2, ...) es el índice más uno en ese momento; no se
+ * guarda en Calc. Borrar el último quita esa pregunta y reiniciar
+ * vuelve a empezar en P1.
  *
  * No hay peticiones de red, ni persistencia, ni lectura de datos
  * personales.
@@ -47,17 +51,33 @@ function clearChildren(element) {
   }
 }
 
+/**
+ * Texto visible y nombre para el lector de pantalla.
+ * El número es la posición (índice + 1) al pintar, no un dato aparte.
+ */
+function listItemLabels(index, cents) {
+  var amount = Calc.formatCents(cents);
+  var number = index + 1;
+  return {
+    text: 'P' + number + ': ' + amount,
+    ariaLabel: 'Pregunta ' + number + ': ' + amount
+  };
+}
+
 function render(totalElement, listElement, placeholderElement, state) {
   var values = Calc.getList(state);
   var index;
   var item;
+  var labels;
 
   totalElement.textContent = Calc.formatCents(Calc.getTotal(state));
 
   clearChildren(listElement);
   for (index = 0; index < values.length; index += 1) {
+    labels = listItemLabels(index, values[index]);
     item = document.createElement('li');
-    item.textContent = Calc.formatCents(values[index]);
+    item.textContent = labels.text;
+    item.setAttribute('aria-label', labels.ariaLabel);
     listElement.appendChild(item);
   }
 
