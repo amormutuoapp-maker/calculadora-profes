@@ -1,7 +1,11 @@
 /* Calculadora para profesores — estilos (T-001, botones en T-003,
-   borrar y reiniciar en T-004, pantalla móvil en vertical en T-005).
+   borrar y reiniciar en T-004, pantalla móvil en vertical en T-005,
+   botones del profesor en T-008).
    Una sola columna a la altura de la pantalla: el total arriba, la
    lista en el medio (única zona con scroll) y los botones abajo.
+   La rejilla de suma es de 3 columnas: entre 320 y 430 px cada
+   botón queda por encima de 48 px y el texto 100,00 cabe. Con 12
+   botones son 4 filas, dentro de la franja inferior.
    Fuentes del sistema. Sin hojas importadas ni recursos remotos. */
 
 :root {
@@ -46,8 +50,14 @@ body {
 h1,
 h2,
 p,
+ul,
 output {
   margin: 0;
+}
+
+/* Un display de autor no debe pisar el atributo hidden. */
+[hidden] {
+  display: none !important;
 }
 
 /* Columna de una pantalla. 100vh queda como alternativa si el
@@ -70,9 +80,16 @@ output {
   background: var(--bg);
 }
 
+.screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .top-bar {
   flex: 0 0 auto;
-  padding: 0.5rem 0.75rem 0.4rem;
+  padding: 0.35rem 0.75rem 0.3rem;
 }
 
 h1 {
@@ -171,17 +188,44 @@ h2 {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.45rem 0.75rem 0.5rem;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem 0.4rem;
   background: var(--bg);
   border-top: 2px solid var(--line);
 }
 
-.sum-buttons {
+.config-launch {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 0.4rem;
+}
+
+.config-open-button,
+.config-back-button,
+.primary-action,
+.secondary-action,
+.config-edit,
+.config-remove {
+  display: block;
+  width: 100%;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0.4rem 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.config-open-button {
+  border-style: dashed;
+}
+
+/* 3 columnas fijas (T-008). minmax(48px, 1fr) garantiza el objetivo
+   táctil; en 320–430 px el ancho real ronda 90–130 px, bastante para
+   «100,00». 12 botones = 4 filas. Con 1, 2 o 3 botones siguen en la
+   primera fila y se reparten el ancho. */
+.sum-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(48px, 1fr));
+  gap: 0.3rem;
 }
 
 button,
@@ -202,9 +246,11 @@ button,
 }
 
 .sum-button {
-  flex: 1 1 0;
-  width: auto;
+  width: 100%;
+  min-width: 48px;
   white-space: nowrap;
+  font-size: 1rem;
+  padding: 0.25rem 0.15rem;
 }
 
 /* «Borrar último»: texto, borde discontinuo y bloque propio,
@@ -306,7 +352,129 @@ textarea,
   border: 0;
 }
 
-:focus-visible {
+:focus-visible,
+input:focus {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+.config-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+}
+
+.button-form {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.button-form label {
+  font-weight: 700;
+}
+
+.field-hint,
+.edit-note,
+#config-note {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+#button-value {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--fg);
+  background: var(--bg);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  touch-action: manipulation;
+}
+
+#button-value[aria-invalid="true"] {
+  border-color: #8f1d1d;
+  border-width: 3px;
+}
+
+.field-error {
+  min-height: 1.35em;
+  color: #8f1d1d;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.field-error:empty {
+  min-height: 0;
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.config-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 0.4rem;
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+}
+
+.config-scroll h2 {
+  margin-bottom: 0.35rem;
+}
+
+.config-list {
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  align-items: stretch;
+}
+
+.config-value {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-remove:disabled {
+  color: var(--muted);
+  border-style: dotted;
+}
+
+.config-footer {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.75rem 0.5rem;
+  border-top: 2px solid var(--line);
+  background: var(--bg);
 }
