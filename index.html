@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Calculadora para profesores</title>
   <!-- Icono vacío para no pedir favicon al servidor. -->
   <link rel="icon" href="data:,">
@@ -12,41 +12,49 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header>
-    <h1>Calculadora para profesores</h1>
-    <p>Suma 1, 0,5 o 0,25. Puedes borrar el último valor o reiniciar.</p>
-  </header>
+  <div class="app-shell">
+    <header class="top-bar">
+      <h1>Calculadora para profesores</h1>
+      <p>Suma 1, 0,5 o 0,25. Puedes borrar el último valor o reiniciar.</p>
+      <section class="total-panel" aria-labelledby="total-heading">
+        <h2 id="total-heading">Total</h2>
+        <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
+      </section>
+    </header>
 
-  <main>
-    <section aria-labelledby="total-heading">
-      <h2 id="total-heading">Total</h2>
-      <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
-    </section>
+    <main class="app-body">
+      <section class="list-panel" aria-labelledby="list-heading">
+        <h2 id="list-heading">Lista de valores</h2>
+        <!-- Solo esta zona se desplaza. app.js la lleva al final tras añadir o borrar. -->
+        <div id="list-scroll" class="list-scroll" tabindex="0">
+          <p id="list-placeholder">Todavía no hay valores.</p>
+          <ul id="value-list" aria-labelledby="list-heading"></ul>
+        </div>
+      </section>
 
-    <section aria-labelledby="list-heading">
-      <h2 id="list-heading">Lista de valores</h2>
-      <p id="list-placeholder">Todavía no hay valores.</p>
-      <ul id="value-list" aria-labelledby="list-heading"></ul>
-    </section>
+      <div class="action-bar">
+        <section class="sum-zone" aria-labelledby="buttons-heading">
+          <h2 id="buttons-heading" class="visually-hidden">Botones</h2>
+          <!-- app.js crea aquí los tres botones fijos, con createElement. -->
+          <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
+        </section>
 
-    <section aria-labelledby="buttons-heading">
-      <h2 id="buttons-heading">Botones</h2>
-      <!-- app.js crea aquí los tres botones fijos, con createElement. -->
-      <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
-    </section>
+        <section class="undo-zone" aria-labelledby="undo-heading">
+          <h2 id="undo-heading" class="visually-hidden">Corregir</h2>
+          <!-- app.js crea «Borrar último» con createElement. Sin confirmación. -->
+          <div id="undo-buttons" class="undo-buttons" role="group" aria-label="Borrar el último valor"></div>
+        </section>
 
-    <section aria-labelledby="undo-heading">
-      <h2 id="undo-heading">Corregir</h2>
-      <!-- app.js crea «Borrar último» con createElement. Sin confirmación. -->
-      <div id="undo-buttons" class="undo-buttons" role="group" aria-label="Borrar el último valor"></div>
-    </section>
-
-    <section class="reset-zone" aria-labelledby="reset-heading">
-      <h2 id="reset-heading">Reiniciar</h2>
-      <p>Apartado del resto. Pide confirmación antes de borrar el total y la lista.</p>
-      <!-- app.js crea «Reset» con createElement. -->
-      <div id="reset-buttons" class="reset-buttons" role="group" aria-label="Reiniciar la calculadora"></div>
-    </section>
-  </main>
+        <section class="reset-zone" aria-labelledby="reset-heading">
+          <div class="reset-copy">
+            <h2 id="reset-heading">Reiniciar</h2>
+            <p>Apartado del resto. Pide confirmación antes de borrar el total y la lista.</p>
+          </div>
+          <!-- app.js crea «Reset» con createElement. -->
+          <div id="reset-buttons" class="reset-buttons" role="group" aria-label="Reiniciar la calculadora"></div>
+        </section>
+      </div>
+    </main>
+  </div>
 </body>
 </html>

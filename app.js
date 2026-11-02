@@ -2,7 +2,8 @@
 
 /**
  * Calculadora para profesores — botones de suma, borrar y reiniciar
- * (T-003 y T-004, v0.1.0).
+ * (T-003 y T-004, v0.1.0). En T-005, tras pintar, la lista se
+ * desplaza hasta el final dentro de su propia zona.
  *
  * Conecta la pantalla con el objeto global Calc. Hay tres botones
  * fijos de suma. La etiqueta visible es el importe: se convierte una
@@ -61,6 +62,19 @@ function render(totalElement, listElement, placeholderElement, state) {
   }
 
   placeholderElement.hidden = values.length > 0;
+  scrollListToEnd(listElement);
+}
+
+/**
+ * Deja a la vista el último valor. Solo mueve #list-scroll:
+ * no usa scrollIntoView, que también puede desplazar la página.
+ */
+function scrollListToEnd(listElement) {
+  var scroller = document.getElementById('list-scroll');
+  if (!scroller || !listElement) {
+    return;
+  }
+  scroller.scrollTop = scroller.scrollHeight;
 }
 
 function syncRemoveButton(button, state) {
