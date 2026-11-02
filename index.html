@@ -7,54 +7,90 @@
   <!-- Icono vacío para no pedir favicon al servidor. -->
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
-  <!-- Lógica de suma (T-002), antes de app.js. Ruta relativa, sin red. -->
+  <!-- Lógica de suma y de botones (T-002, T-008), antes de app.js. -->
   <script src="calc.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
-    <header class="top-bar">
-      <h1>Calculadora para profesores</h1>
-      <p>Suma 1, 0,5 o 0,25. Puedes borrar el último valor o reiniciar.</p>
-      <section class="total-panel" aria-labelledby="total-heading">
-        <h2 id="total-heading">Total</h2>
-        <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
-      </section>
-    </header>
-
-    <main class="app-body">
-      <section class="list-panel" aria-labelledby="list-heading">
-        <h2 id="list-heading">Lista de valores</h2>
-        <!-- Solo esta zona se desplaza. app.js la lleva al final tras añadir o borrar. -->
-        <div id="list-scroll" class="list-scroll" tabindex="0">
-          <p id="list-placeholder">Todavía no hay valores.</p>
-          <ul id="value-list" aria-labelledby="list-heading"></ul>
-        </div>
-      </section>
-
-      <div class="action-bar">
-        <section class="sum-zone" aria-labelledby="buttons-heading">
-          <h2 id="buttons-heading" class="visually-hidden">Botones</h2>
-          <!-- app.js crea aquí los tres botones fijos, con createElement. -->
-          <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
+    <div id="calculator-screen" class="screen">
+      <header class="top-bar">
+        <h1>Calculadora para profesores</h1>
+        <p>Configura los botones, suma, borra el último o reinicia.</p>
+        <section class="total-panel" aria-labelledby="total-heading">
+          <h2 id="total-heading">Total</h2>
+          <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
         </section>
+      </header>
 
-        <section class="undo-zone" aria-labelledby="undo-heading">
-          <h2 id="undo-heading" class="visually-hidden">Corregir</h2>
-          <!-- app.js crea «Borrar último» con createElement. Sin confirmación. -->
-          <div id="undo-buttons" class="undo-buttons" role="group" aria-label="Borrar el último valor"></div>
-        </section>
-
-        <section class="reset-zone" aria-labelledby="reset-heading">
-          <div class="reset-copy">
-            <h2 id="reset-heading">Reiniciar</h2>
-            <p>Apartado del resto. Pide confirmación antes de borrar el total y la lista.</p>
+      <main class="app-body">
+        <section class="list-panel" aria-labelledby="list-heading">
+          <h2 id="list-heading">Lista de valores</h2>
+          <!-- Solo esta zona se desplaza. app.js la lleva al final tras añadir o borrar. -->
+          <div id="list-scroll" class="list-scroll" tabindex="0">
+            <p id="list-placeholder">Todavía no hay valores.</p>
+            <ul id="value-list" aria-labelledby="list-heading"></ul>
           </div>
-          <!-- app.js crea «Reset» con createElement. -->
-          <div id="reset-buttons" class="reset-buttons" role="group" aria-label="Reiniciar la calculadora"></div>
         </section>
+
+        <div class="action-bar">
+          <div class="config-launch">
+            <button type="button" id="open-config" class="config-open-button">Configurar botones</button>
+          </div>
+
+          <section class="sum-zone" aria-labelledby="buttons-heading">
+            <h2 id="buttons-heading" class="visually-hidden">Botones</h2>
+            <!-- app.js crea aquí un botón por cada valor configurado. -->
+            <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
+          </section>
+
+          <section class="undo-zone" aria-labelledby="undo-heading">
+            <h2 id="undo-heading" class="visually-hidden">Corregir</h2>
+            <!-- app.js crea «Borrar último» con createElement. Sin confirmación. -->
+            <div id="undo-buttons" class="undo-buttons" role="group" aria-label="Borrar el último valor"></div>
+          </section>
+
+          <section class="reset-zone" aria-labelledby="reset-heading">
+            <div class="reset-copy">
+              <h2 id="reset-heading">Reiniciar</h2>
+              <p>Apartado del resto. Pide confirmación antes de borrar el total y la lista.</p>
+            </div>
+            <!-- app.js crea «Reset» con createElement. -->
+            <div id="reset-buttons" class="reset-buttons" role="group" aria-label="Reiniciar la calculadora"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="config-screen" class="screen" hidden>
+      <header class="top-bar">
+        <h1>Configurar botones</h1>
+        <p id="config-note" role="status"></p>
+      </header>
+
+      <div class="config-body">
+        <form id="button-form" class="button-form" autocomplete="off">
+          <label id="button-value-label" for="button-value">Nuevo valor</label>
+          <p id="button-value-hint" class="field-hint">Entre 0,01 y 100. Acepta coma o punto.</p>
+          <input id="button-value" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-describedby="button-value-hint button-value-error" aria-invalid="false">
+          <p id="button-value-error" class="field-error" role="alert"></p>
+          <p id="edit-note" class="edit-note" hidden></p>
+          <div class="form-actions">
+            <button type="submit" id="button-save" class="primary-action">Añadir</button>
+            <button type="button" id="button-cancel" class="secondary-action" hidden>Cancelar</button>
+          </div>
+        </form>
+
+        <div id="config-scroll" class="config-scroll">
+          <h2 id="config-list-heading">Botones actuales</h2>
+          <ul id="config-list" class="config-list" aria-labelledby="config-list-heading"></ul>
+        </div>
       </div>
-    </main>
+
+      <div class="config-footer">
+        <button type="button" id="config-back" class="config-back-button">Volver a la calculadora</button>
+      </div>
+    </div>
   </div>
 </body>
 </html>
