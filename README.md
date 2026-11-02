@@ -2,9 +2,67 @@
 
 Aplicación web para el móvil en la que un profesor suma valores pulsando botones que define él. Cada pulsación se suma al total. Puede borrar el último valor y reiniciar con confirmación. El total y la lista de valores quedan a la vista.
 
-Esta versión (v0.3.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007) y los botones definidos por el profesor (T-008). Añade las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010).
+Esta versión (v0.4.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007), los botones definidos por el profesor (T-008), las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010). El aspecto pasa a ser el de una calculadora de mano (T-012). Las funciones no cambian.
 
 Cada pulsación de suma añade su importe. «Borrar último» quita solo el último valor, sin preguntar. «Reset» pide confirmación y, si se acepta, deja el total en `0,00` y la lista vacía. El total y la lista se actualizan al momento, con coma y dos decimales. Cada línea se numera al pintarla según su posición, por ejemplo `P1: 1,00`. La página ocupa la altura de la pantalla: el total queda arriba, los botones abajo y solo la lista se desplaza. Tras añadir o borrar, la lista muestra el último valor.
+
+## Diseño
+
+La página es una calculadora de mano sobre una mesa. La carcasa tiene esquinas redondeadas y una sombra suave. Arriba hay una pantalla LCD con el total a la derecha, en dígitos grandes y en una fuente monoespaciada del sistema (`ui-monospace`, `SF Mono`, `Menlo`, `Consolas`, `Roboto Mono`, `monospace`), con `font-variant-numeric: tabular-nums`. Debajo, la lista P1, P2… es una cinta de papel con su propio scroll. Las cifras son teclas con canto (sombra inferior sólida). Al pulsar, la tecla baja 3 px y el canto se acorta. Si el sistema pide menos movimiento (`prefers-reduced-motion: reduce`), la tecla no se desplaza: solo se acorta el canto. «Borrar último» es una tecla de función, de otro color, como la tecla C. «Reset» y «Quitar» usan el naranja de aviso, como AC. Configurar y Plantillas viven en la misma carcasa: los campos parecen pantallas LCD y los botones, teclas.
+
+Con poca altura (por ejemplo 320×640 y 12 teclas) el marco exterior se reduce a 4 px y el texto de ayuda pasa a 0,875 rem (14 px). Sigue por encima de 4,5:1, y así cabe el total, una línea entera de la cinta y las teclas. A partir de 700 px de alto el marco es de 8 px, el texto de ayuda vuelve a 1 rem y el total crece.
+
+El modo oscuro (`prefers-color-scheme: dark`) no cambia los colores del aparato: una calculadora física no se invierte. Oscurece la mesa y dibuja un cerco alrededor de la carcasa para que el cuerpo se distinga. Las parejas de dentro (LCD, teclas, cinta, avisos) son las mismas.
+
+No hay una cuarta tinta para los textos secundarios: las pistas usan la misma tinta clara que el título, así que pasan el mismo contraste. Los controles inactivos no bajan de contraste; se quedan planos, sin canto.
+
+### Colores
+
+| Papel | Hex |
+| --- | --- |
+| Mesa, modo claro | `#D7D2C6` |
+| Mesa, modo oscuro | `#101211` |
+| Carcasa y tinta de las teclas | `#1C2422` |
+| Tinta clara, tecla de valor y cinta | `#F4F1EA` |
+| LCD | `#C5D6AE` |
+| Dígitos del LCD | `#1A2614` |
+| Tecla de función | `#D5DEE5` |
+| Canto de la tecla de valor | `#7A756C` |
+| Canto de la tecla de función | `#6E767C` |
+| Aviso (Reset, Quitar, error, placa de almacén) | `#F07828` |
+| Canto del aviso y borde interior del campo inválido | `#6C2D0D` |
+| Cerco de la carcasa en modo oscuro | `#8B918D` |
+
+### Contraste
+
+Ratios calculados con la luminancia relativa de WCAG 2 (sRGB, umbral 0,04045, gamma 2,4). El mínimo es 4,5:1 para texto normal y 3:1 para texto grande y para el borde de un control. El total es texto grande (a partir de 2 rem) y además supera 4,5:1. Los decimales van con coma, como el resto de este texto.
+
+Parejas usadas, en los dos modos (el aparato no cambia):
+
+| Pareja | Ratio | Dónde |
+| --- | --- | --- |
+| `#F4F1EA` sobre `#1C2422` | 14,05:1 | Título, pistas, cinta, leyenda de la tecla de valor, foco sobre la carcasa, tecla de valor contra la carcasa |
+| `#1A2614` sobre `#C5D6AE` | 10,22:1 | Dígitos del total, campos y valores de Configurar |
+| `#C5D6AE` sobre `#1C2422` | 10,27:1 | La pantalla LCD y los campos contra la carcasa |
+| `#1C2422` sobre `#D5DEE5` | 11,63:1 | Leyenda de Configurar, Borrar último, Añadir, Guardar, Cargar, Renombrar y Borrar plantilla; la insignia «Última usada» |
+| `#D5DEE5` sobre `#1C2422` | 11,63:1 | Esas teclas de función contra la carcasa |
+| `#7A756C` sobre `#F4F1EA` | 4,06:1 | Canto de la tecla de valor |
+| `#6E767C` sobre `#D5DEE5` | 3,39:1 | Canto de la tecla de función |
+| `#F07828` sobre `#1C2422` | 5,60:1 | Texto de error; la tecla de aviso contra la carcasa. La leyenda oscura sobre la tecla naranja es el mismo par |
+| `#6C2D0D` sobre `#F07828` | 3,68:1 | Canto de Reset y de Quitar; borde de la placa de almacén |
+| `#6C2D0D` sobre `#C5D6AE` | 6,74:1 | Borde interior del campo cuando el valor no sirve |
+| `#1C2422` sobre `#D7D2C6` | 10,51:1 | Carcasa contra la mesa en modo claro |
+
+Solo en modo oscuro, el límite del aparato es el cerco, no el relleno:
+
+| Pareja | Ratio | Dónde |
+| --- | --- | --- |
+| `#8B918D` sobre `#101211` | 5,85:1 | Cerco contra la mesa oscura |
+| `#8B918D` sobre `#1C2422` | 4,93:1 | Cerco contra la carcasa |
+
+Parejas que no se usan, porque no llegan a 3:1: el naranja `#F07828` sobre el LCD `#C5D6AE` (1,83:1) y el canto `#6C2D0D` sobre la carcasa `#1C2422` (1,52:1). Por eso el campo inválido lleva primero el canto oscuro (bien visible sobre el LCD) y, por fuera, el anillo naranja (bien visible sobre la carcasa). La carcasa sobre la mesa oscura da 1,19:1; el cerco es el que marca el cuerpo.
+
+El foco es un anillo de 3 px en `#F4F1EA`, separado 2 px del control (5 px si el campo ya lleva el anillo de error, para no pisarlo). Los objetivos miden al menos 48 px. Los campos usan 18 px para que el móvil no haga zoom al escribir.
 
 ## Qué se guarda y qué no
 
@@ -62,7 +120,7 @@ El servidor indica el puerto (8000 si está libre). Abre `http://127.0.0.1:8000/
 ## Cómo probarla
 
 1. Abre la página con uno de los dos métodos.
-2. Comprueba que el total muestra `0,00` y que la lista indica que todavía no hay valores. Hay tres botones de suma: `1,00`, `0,50` y `0,25`. Junto a ellos, «Configurar botones» y «Borrar último» (desactivado si no hay valores). «Reset» está en la misma franja inferior, apartado, con borde distinto.
+2. Comprueba que el total muestra `0,00` y que la lista indica que todavía no hay valores. Hay tres botones de suma: `1,00`, `0,50` y `0,25`. Junto a ellos, «Configurar botones» y «Borrar último» (desactivado si no hay valores). «Reset» está en la misma franja inferior, apartado, en la tecla naranja de aviso.
 3. Pulsa `1,00`, después `0,50` y después `0,25`. El total debe mostrar `1,75` y la lista, en ese orden, `P1: 1,00`, `P2: 0,50` y `P3: 0,25`.
 4. Pulsa «Borrar último». El total pasa a `1,50` y la lista queda en `P1: 1,00` y `P2: 0,50`. No pregunta.
 5. Pulsa «Reset» y cancela. El total y la lista no cambian. Pulsa «Reset» y acepta: el total vuelve a `0,00` y se lee otra vez que todavía no hay valores. «Borrar último» queda desactivado.
@@ -133,7 +191,7 @@ La zona de suma es una rejilla de 3 columnas. Entre 320 y 430 px de ancho cada b
 
 Después de cada suma, de borrar el último valor o de aceptar el reinicio se vuelven a pintar el total (`#total`) y la lista (`#value-list`). El importe usa `formatCents`. Delante va el número de pregunta, que es la posición en la lista (índice + 1) en ese momento: `P1: 1,00`, `P2: 0,50`. No se guarda en el estado de Calc. El lector de pantalla oye «Pregunta 1: 1,00». Borrar el último quita esa pregunta; al reiniciar, la siguiente vuelve a ser `P1`. Al abrir la página el total es `0,00` y, si no hay valores, se lee el texto de lista vacía. Los botones miden al menos 48 px, los campos de configurar y de nombre usan un tamaño de letra de 18 px para que el móvil no haga zoom, y el foco se ve al navegar con el teclado. El total tiene `aria-live` para anunciar el cambio. El nombre de una plantilla se escribe como texto, nunca como HTML.
 
-«Borrar último» llama a `removeLast` y no pide confirmación. Si la lista está vacía, el botón queda desactivado; al sumar se activa y, al vaciar la lista, se desactiva otra vez. «Reset» queda en la franja de abajo, alineado al final y separado de la suma, con borde distinto, para no pulsarlo al buscar un importe. Antes de llamar a `reset` pregunta con `window.confirm`. Si se cancela, no cambia nada. Si se acepta, el total queda en `0,00` y vuelve el texto de lista vacía. Borrar una plantilla pregunta igual; cancelar no la quita. «Actualizar plantilla» pregunta solo cuando los botones cambian; cancelar no escribe. El nombre en uso se pinta con `textContent`.
+«Borrar último» llama a `removeLast` y no pide confirmación. Si la lista está vacía, el botón queda desactivado; al sumar se activa y, al vaciar la lista, se desactiva otra vez. «Reset» queda en la franja de abajo, alineado al final y separado de la suma, con la tecla de aviso, para no pulsarlo al buscar un importe. Antes de llamar a `reset` pregunta con `window.confirm`. Si se cancela, no cambia nada. Si se acepta, el total queda en `0,00` y vuelve el texto de lista vacía. Borrar una plantilla pregunta igual; cancelar no la quita. «Actualizar plantilla» pregunta solo cuando los botones cambian; cancelar no escribe. El nombre en uso se pinta con `textContent`.
 
 ## Cómo ejecutar las pruebas
 
@@ -150,7 +208,7 @@ Si una prueba falla, el proceso termina con un código distinto de cero. La carp
 ## Ficheros
 
 - `index.html` — página: calculadora, configurar botones y plantillas
-- `style.css` — presentación para móvil, incluida la rejilla de 3 columnas
+- `style.css` — calculadora de mano (carcasa, LCD, cinta y teclas), incluida la rejilla de 3 columnas
 - `app.js` — botones de suma, configurar, plantillas, borrar último, reinicio, total y lista
 - `calc.js` — suma en céntimos y validación de botones, sin interfaz
 - `storage.js` — plantillas, sin interfaz; el almacén se inyecta

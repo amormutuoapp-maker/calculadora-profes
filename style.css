@@ -1,24 +1,49 @@
-/* Calculadora para profesores — estilos (T-001, botones en T-003,
-   borrar y reiniciar en T-004, pantalla móvil en vertical en T-005,
-   botones del profesor en T-008, plantillas en T-009, actualizar
-   la plantilla en uso en T-010).
-   Una sola columna a la altura de la pantalla: el total arriba, la
-   lista en el medio (única zona con scroll) y los botones abajo.
-   La rejilla de suma es de 3 columnas: entre 320 y 430 px cada
-   botón queda por encima de 48 px y el texto 100,00 cabe. Con 12
-   botones son 4 filas, dentro de la franja inferior.
-   Fuentes del sistema. Sin hojas importadas ni recursos remotos. */
+/* Calculadora para profesores — aspecto de calculadora clásica
+   (T-012, v0.4.0).
+   La conducta no cambia: una columna a la altura de la pantalla,
+   el total arriba, la cinta en el medio (única zona con scroll) y
+   las teclas abajo. Rejilla de 3 columnas. Con 12 teclas son 4
+   filas y siguen en la franja inferior.
+   Fuentes del sistema. Sin hojas importadas ni recursos remotos.
+
+   Paleta (los ratios están en el README, sección Diseño):
+   - mesa clara #D7D2C6 / mesa oscura #101211
+   - carcasa #1C2422, tinta clara #F4F1EA
+   - LCD #C5D6AE, dígitos #1A2614
+   - tecla de valor #F4F1EA, canto #7A756C
+   - tecla de función #D5DEE5, canto #6E767C
+   - aviso #F07828, canto #6C2D0D
+   - cerco en oscuro #8B918D
+   La tinta de las leyendas es la carcasa (#1C2422) sobre tecla,
+   función o aviso. No se pone el naranja del aviso encima del LCD:
+   no llega a 3:1. El modo oscuro no recoloréa el aparato (es un
+   objeto); oscurece la mesa y añade un cerco para separarla. */
 
 :root {
   color-scheme: light;
-  --bg: #ffffff;
-  --fg: #111111;
-  --muted: #333333;
-  --total-bg: #111111;
-  --total-fg: #ffffff;
-  --line: #111111;
-  --focus: #0057b8;
-  --zone: #f3f3f3;
+  --frame: 8px;
+  --desk: #D7D2C6;
+  --case: #1C2422;
+  --ink: #F4F1EA;
+  --lcd-bg: #C5D6AE;
+  --lcd-ink: #1A2614;
+  --key: #F4F1EA;
+  --key-lip: #7A756C;
+  --fn: #D5DEE5;
+  --fn-lip: #6E767C;
+  --warn: #F07828;
+  --warn-lip: #6C2D0D;
+  --rim: transparent;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --desk: #101211;
+    --rim: #8B918D;
+  }
 }
 
 *,
@@ -31,7 +56,6 @@ html {
   height: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Evita el zoom al tocar dos veces, sin impedir el pellizco del usuario. */
   touch-action: manipulation;
 }
 
@@ -40,11 +64,11 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 1rem;
   line-height: 1.35;
-  color: var(--fg);
-  background: var(--bg);
+  color: var(--ink);
+  background: var(--desk);
   touch-action: manipulation;
 }
 
@@ -52,33 +76,41 @@ h1,
 h2,
 p,
 ul,
-output {
+output,
+label {
   margin: 0;
 }
 
-/* Un display de autor no debe pisar el atributo hidden. */
 [hidden] {
   display: none !important;
 }
 
-/* Columna de una pantalla. 100vh queda como alternativa si el
-   navegador no entiende 100dvh. El padding respeta el hueco del
-   sistema cuando el viewport usa viewport-fit=cover. */
 .app-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
+  height: calc(
+    100vh
+    - max(var(--frame), env(safe-area-inset-top, 0px))
+    - max(var(--frame), env(safe-area-inset-bottom, 0px))
+  );
+  height: calc(
+    100dvh
+    - max(var(--frame), env(safe-area-inset-top, 0px))
+    - max(var(--frame), env(safe-area-inset-bottom, 0px))
+  );
+  margin-top: max(var(--frame), env(safe-area-inset-top, 0px));
+  margin-right: max(var(--frame), env(safe-area-inset-right, 0px));
+  margin-bottom: max(var(--frame), env(safe-area-inset-bottom, 0px));
+  margin-left: max(var(--frame), env(safe-area-inset-left, 0px));
   overflow: hidden;
-  padding: 0;
-  padding:
-    env(safe-area-inset-top, 0px)
-    env(safe-area-inset-right, 0px)
-    env(safe-area-inset-bottom, 0px)
-    env(safe-area-inset-left, 0px);
-  background: var(--bg);
+  color: var(--ink);
+  background: var(--case);
+  border-radius: 28px;
+  /* El cerco (0 0 0 3px) solo se ve en oscuro: --rim es transparente
+     en claro, donde la carcasa ya contrasta con la mesa. */
+  box-shadow:
+    0 0 0 3px var(--rim),
+    0 16px 30px rgb(16 18 17 / 0.34);
 }
 
 .screen {
@@ -90,23 +122,21 @@ output {
 
 .top-bar {
   flex: 0 0 auto;
-  padding: 0.35rem 0.75rem 0.3rem;
+  padding: 0.7rem 0.8rem 0.35rem;
 }
 
 h1 {
-  font-size: 1.125rem;
+  font-size: 1.15rem;
   line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .top-bar p {
-  margin-top: 0.2rem;
-  color: var(--muted);
+  margin-top: 0.25rem;
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.3;
-}
-
-.total-panel {
-  margin-top: 0.4rem;
 }
 
 .app-body {
@@ -119,37 +149,66 @@ h1 {
 h2 {
   font-size: 1rem;
   line-height: 1.25;
-  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+/* Pantalla LCD hundida en la carcasa. */
+.total-panel {
+  margin-top: 0.45rem;
+  padding: 0.4rem 0.75rem 0.45rem;
+  background: var(--lcd-bg);
+  color: var(--lcd-ink);
+  border-radius: 12px;
+}
+
+.total-panel h2 {
+  margin: 0;
+  color: var(--lcd-ink);
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .total-value {
   display: block;
   width: 100%;
-  padding: 0.35rem 0.7rem;
-  background: var(--total-bg);
-  color: var(--total-fg);
-  font-size: clamp(2rem, 10vw, 3rem);
+  margin: 0;
+  padding: 0.05rem 0 0.1rem;
+  background: transparent;
+  color: var(--lcd-ink);
+  font-family: var(--mono);
+  font-size: clamp(2.35rem, 12vw, 3.45rem);
   font-weight: 700;
-  line-height: 1.1;
-  text-align: right;
   font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  text-align: right;
   white-space: nowrap;
 }
 
+/* Cinta bajo la pantalla: el papel de la suma. */
 .list-panel {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin: 0 0.75rem;
-  border: 2px solid var(--line);
-  background: var(--zone);
+  margin: 0.45rem 0.8rem 0.15rem;
+  padding: 0.4rem 0.6rem 0.45rem;
+  background: var(--key);
+  color: var(--case);
+  border-radius: 10px;
 }
 
 .list-panel h2 {
   flex: 0 0 auto;
-  margin: 0;
-  padding: 0.35rem 0.7rem 0.15rem;
+  margin: 0 0 0.15rem;
+  color: var(--case);
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .list-scroll {
@@ -157,23 +216,27 @@ h2 {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 0.15rem 0.7rem 0.4rem;
-  /* manipulation: se puede desplazar y hacer zoom con pellizco;
-     no hace zoom al tocar dos veces. */
+  padding: 0.05rem 0.1rem 0.15rem;
   touch-action: manipulation;
   overscroll-behavior: contain;
+  scrollbar-color: var(--case) var(--key);
 }
 
 #list-placeholder {
-  color: var(--muted);
+  color: var(--case);
   font-size: 1rem;
 }
 
 #value-list {
   margin: 0;
-  padding: 0 0 0.15rem 1.25rem;
+  padding: 0;
+  list-style: none;
+  color: var(--case);
+  font-family: var(--mono);
   font-size: 1.125rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.25;
 }
 
 #value-list:empty {
@@ -181,118 +244,145 @@ h2 {
 }
 
 #value-list li {
-  padding: 0.12rem 0;
-  line-height: 1.3;
+  padding: 0.28rem 0.1rem;
+  border-bottom: 1px dashed var(--case);
 }
 
 .action-bar {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.35rem 0.75rem 0.4rem;
-  background: var(--bg);
-  border-top: 2px solid var(--line);
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem 0.7rem;
+  background: transparent;
 }
 
 .config-launch {
   display: flex;
 }
 
-.config-open-button,
-.config-back-button,
-.primary-action,
-.secondary-action,
-.config-edit,
-.config-remove,
-.template-action {
-  display: block;
-  width: 100%;
-  min-width: 48px;
-  min-height: 48px;
-  padding: 0.4rem 0.6rem;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.config-open-button {
-  border-style: dashed;
-}
-
-/* 3 columnas fijas (T-008). minmax(48px, 1fr) garantiza el objetivo
-   táctil; en 320–430 px el ancho real ronda 90–130 px, bastante para
-   «100,00». 12 botones = 4 filas. Con 1, 2 o 3 botones siguen en la
-   primera fila y se reparten el ancho. */
-.sum-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(48px, 1fr));
-  gap: 0.3rem;
-}
-
-button,
-.sum-button {
+/* Tecla física: el canto es una sombra sólida. Al pulsar, la tecla
+   baja y el canto se acorta. El desplazamiento solo existe si el
+   usuario no pide menos movimiento. */
+button {
+  --lip: var(--key-lip);
+  display: inline-block;
   min-width: 48px;
   min-height: 48px;
   margin: 0;
-  padding: 0.4rem 0.35rem;
-  font: inherit;
-  font-size: clamp(1.125rem, 5.5vw, 1.75rem);
+  padding: 0.4rem 0.55rem;
+  font-family: var(--sans);
+  font-size: 1rem;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
   text-align: center;
-  color: var(--fg);
-  background: var(--bg);
-  border: 2px solid var(--line);
+  color: var(--case);
+  background: var(--key);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--lip);
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--lip);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition: transform 80ms ease, box-shadow 80ms ease;
+  }
+
+  button:active:not(:disabled) {
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  button:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+}
+
+button:disabled {
+  box-shadow: none;
+}
+
+.sum-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(48px, 1fr));
+  gap: 0.5rem;
 }
 
 .sum-button {
   width: 100%;
   min-width: 48px;
+  min-height: 48px;
+  padding: 0.25rem 0.2rem;
+  font-family: var(--mono);
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  font-size: 1rem;
-  padding: 0.25rem 0.15rem;
 }
 
-/* «Borrar último»: texto, borde discontinuo y bloque propio,
-   junto a los botones de suma (que son cifras y borde sólido). */
 .undo-buttons {
   display: flex;
   flex-direction: column;
 }
 
 .remove-button {
+  --lip: var(--fn-lip);
   display: block;
   width: 100%;
   min-width: 48px;
   min-height: 48px;
   padding: 0.45rem 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  text-align: center;
-  background: transparent;
-  border-width: 3px;
-  border-style: dashed;
+  font-size: 1.0625rem;
+  background: var(--fn);
+  color: var(--case);
 }
 
-.remove-button:disabled {
-  color: var(--muted);
-  border-style: dotted;
+.config-open-button,
+.config-back-button,
+.primary-action,
+.template-action {
+  --lip: var(--fn-lip);
+  display: block;
+  width: 100%;
+  min-width: 48px;
+  min-height: 48px;
+  background: var(--fn);
+  color: var(--case);
 }
 
-/* Reset: en la misma franja inferior, pero separado de la suma
-   (a la derecha, con texto y borde doble) para no pulsarlo al
-   buscar 1, 0,5 o 0,25. Sigue a la vista, sin desplazar la página. */
+.secondary-action {
+  --lip: var(--key-lip);
+  display: block;
+  width: 100%;
+  background: var(--key);
+  color: var(--case);
+}
+
+.config-remove,
+.reset-button {
+  --lip: var(--warn-lip);
+  background: var(--warn);
+  color: var(--case);
+}
+
 .reset-zone {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
   gap: 0.6rem;
-  margin-top: 0.15rem;
+  margin-top: 0.05rem;
   padding-top: 0.45rem;
-  border-top: 2px dashed var(--line);
+  border-top: 2px solid var(--ink);
 }
 
 .reset-copy {
@@ -303,11 +393,12 @@ button,
 .reset-zone h2 {
   margin: 0;
   font-size: 1rem;
+  color: var(--ink);
 }
 
 .reset-zone p {
   margin: 0.1rem 0 0;
-  color: var(--muted);
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.25;
 }
@@ -321,15 +412,10 @@ button,
 .reset-button {
   display: inline-block;
   width: auto;
-  min-width: 48px;
+  min-width: 5.5rem;
   min-height: 48px;
-  padding: 0.45rem 0.85rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  text-align: center;
-  background: var(--bg);
-  border-width: 6px;
-  border-style: double;
+  padding: 0.45rem 0.9rem;
+  font-size: 1.0625rem;
   white-space: nowrap;
 }
 
@@ -354,9 +440,18 @@ textarea,
   border: 0;
 }
 
-:focus-visible,
-input:focus {
-  outline: 3px solid var(--focus);
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+input:focus,
+input:focus-visible {
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -365,8 +460,8 @@ input:focus {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0 0.75rem;
+  gap: 0.45rem;
+  padding: 0 0.8rem;
 }
 
 .button-form {
@@ -376,14 +471,17 @@ input:focus {
   gap: 0.3rem;
 }
 
-.button-form label {
+.button-form label,
+.template-rename label {
   font-weight: 700;
+  color: var(--ink);
 }
 
 .field-hint,
 .edit-note,
-#config-note {
-  color: var(--muted);
+#config-note,
+#template-status {
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.3;
 }
@@ -394,26 +492,38 @@ input:focus {
   width: 100%;
   min-height: 48px;
   margin: 0;
-  padding: 0.4rem 0.6rem;
-  font: inherit;
+  padding: 0.4rem 0.65rem;
+  font-family: var(--mono);
   font-size: 18px;
+  font-variant-numeric: tabular-nums;
   line-height: 1.3;
-  color: var(--fg);
-  background: var(--bg);
-  border: 2px solid var(--line);
-  border-radius: 0;
+  color: var(--lcd-ink);
+  background: var(--lcd-bg);
+  border: 3px solid transparent;
+  border-radius: 10px;
+  appearance: none;
+  -webkit-appearance: none;
   touch-action: manipulation;
 }
 
 #button-value[aria-invalid="true"],
 .text-input[aria-invalid="true"] {
-  border-color: #8f1d1d;
-  border-width: 3px;
+  /* El canto oscuro separa el LCD del anillo naranja: el naranja
+     solo contra el LCD no llega a 3:1. */
+  border-color: var(--warn-lip);
+  box-shadow: 0 0 0 3px var(--warn);
+}
+
+#button-value[aria-invalid="true"]:focus,
+.text-input[aria-invalid="true"]:focus,
+#button-value[aria-invalid="true"]:focus-visible,
+.text-input[aria-invalid="true"]:focus-visible {
+  outline-offset: 5px;
 }
 
 .field-error {
   min-height: 1.35em;
-  color: #8f1d1d;
+  color: var(--warn);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.35;
@@ -426,7 +536,7 @@ input:focus {
 .form-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.45rem;
 }
 
 .config-scroll {
@@ -437,24 +547,38 @@ input:focus {
   padding-bottom: 0.4rem;
   touch-action: manipulation;
   overscroll-behavior: contain;
+  scrollbar-color: var(--ink) var(--case);
 }
 
 .config-scroll h2 {
   margin-bottom: 0.35rem;
+  color: var(--ink);
 }
 
-.config-list {
+.config-list,
+.template-list {
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-row,
+.template-card {
+  display: flex;
+  flex-direction: column;
   gap: 0.4rem;
+  padding: 0.45rem;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: transparent;
 }
 
 .config-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.3rem;
+  gap: 0.4rem;
   align-items: stretch;
 }
 
@@ -463,122 +587,189 @@ input:focus {
   min-height: 48px;
   display: flex;
   align-items: center;
-  padding: 0.25rem 0.6rem;
-  border: 2px solid var(--line);
-  background: var(--bg);
+  justify-content: flex-end;
+  padding: 0.25rem 0.65rem;
+  border-radius: 10px;
+  background: var(--lcd-bg);
+  color: var(--lcd-ink);
+  font-family: var(--mono);
   font-size: 1.25rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.config-remove:disabled {
-  color: var(--muted);
-  border-style: dotted;
+.config-edit,
+.config-remove,
+.template-action {
+  min-height: 48px;
+  min-width: 48px;
 }
 
 .config-footer {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.4rem 0.75rem 0.5rem;
-  border-top: 2px solid var(--line);
-  background: var(--bg);
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem 0.65rem;
+  border-top: 2px solid var(--ink);
+  background: transparent;
 }
 
-/* Aviso de plantillas: el total y los botones siguen en la columna
-   (el aviso crece la cabecera y encoge la lista, que es la que se
-   desplaza). */
+.top-bar p.storage-warning,
 .storage-warning {
   margin-top: 0.35rem;
-  padding: 0.45rem 0.6rem;
-  border: 3px solid #8f1d1d;
-  background: #fff4f4;
-  color: #8f1d1d;
+  padding: 0.5rem 0.65rem;
+  border: 3px solid var(--warn-lip);
+  border-radius: 12px;
+  background: var(--warn);
+  color: var(--case);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.3;
 }
 
 #templates-intro {
-  margin-top: 0.2rem;
-  color: var(--muted);
+  margin-top: 0.25rem;
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.3;
 }
 
-/* Nombre de la plantilla en uso y «Actualizar plantilla»: fuera de
-   la lista que se desplaza, para que sigan a la vista. */
 .template-current {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 #template-in-use {
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.3;
+  color: var(--ink);
   overflow-wrap: anywhere;
-}
-
-#template-update:disabled {
-  color: var(--muted);
-  border-style: dotted;
-}
-
-.template-list {
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.template-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.4rem;
-  border: 2px solid var(--line);
-  background: var(--bg);
 }
 
 .template-name,
-.template-badge {
+.template-badge,
+.template-buttons-label {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.template-name {
   font-size: 1.125rem;
   font-weight: 700;
   line-height: 1.3;
-  overflow-wrap: anywhere;
 }
 
 .template-badge {
-  font-size: 1rem;
+  display: inline-block;
+  width: fit-content;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--fn);
+  color: var(--case);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .template-buttons-label {
-  color: var(--muted);
   font-size: 1rem;
   line-height: 1.3;
-  overflow-wrap: anywhere;
 }
 
 .template-actions,
 .template-rename {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
 }
 
 .template-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(48px, 1fr));
-  gap: 0.3rem;
+  gap: 0.4rem;
+}
+
+.template-action {
+  white-space: normal;
 }
 
 #template-empty {
-  color: var(--muted);
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.3;
+}
+
+/* Con poca altura (320×640 y 12 teclas) se aprieta el marco para que
+   el total, la cinta y las teclas sigan a la vista. A partir de 700 px
+   de alto se usa el marco holgado de arriba. */
+@media (max-height: 700px) {
+  :root {
+    --frame: 4px;
+  }
+
+  .app-shell {
+    border-radius: 18px;
+  }
+
+  .top-bar {
+    padding: 0.4rem 0.6rem 0.2rem;
+  }
+
+  h1 {
+    font-size: 1.05rem;
+  }
+
+  .top-bar p,
+  #templates-intro {
+    margin-top: 0.1rem;
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
+  .total-panel {
+    margin-top: 0.22rem;
+    padding: 0.22rem 0.55rem 0.24rem;
+  }
+
+  .total-value {
+    font-size: clamp(2rem, 10vw, 2.5rem);
+  }
+
+  .list-panel {
+    margin: 0.2rem 0.55rem 0.05rem;
+    padding: 0.18rem 0.45rem 0.16rem;
+  }
+
+  .list-panel h2 {
+    margin-bottom: 0.04rem;
+  }
+
+  #value-list li {
+    padding: 0.16rem 0.05rem;
+  }
+
+  .action-bar {
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem 0.45rem;
+  }
+
+  .sum-buttons,
+  .form-actions,
+  .template-actions,
+  .config-footer {
+    gap: 0.35rem;
+  }
+
+  .reset-zone {
+    padding-top: 0.3rem;
+  }
+
+  .reset-zone p {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
 }
