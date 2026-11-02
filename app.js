@@ -2,7 +2,7 @@
 
 /**
  * Calculadora para profesores — pantalla (T-003, T-004, T-005, T-007,
- * T-008, T-009, T-010 y T-013, v0.3.0).
+ * T-008, T-009, T-010, T-013 y T-014, v0.4.0).
  *
  * Conecta la página con Calc y con ButtonStore. Los botones de suma
  * salen de la última plantilla usada. Si no hay ninguna, si se borró
@@ -896,3 +896,23 @@ function initApp() {
 }
 
 initApp();
+
+/**
+ * T-014: registra el service worker para instalar la app y abrirla sin
+ * conexión. La ruta es relativa (sirve bajo /calculadora-profes/). Si
+ * el navegador no lo admite o el registro falla, la calculadora sigue.
+ */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+  try {
+    navigator.serviceWorker.register('sw.js').catch(function () {
+      /* Sin registro, la página sigue sumando. */
+    });
+  } catch (error) {
+    /* El navegador ha rechazado el registro. La suma no depende de él. */
+  }
+}
+
+registerServiceWorker();

@@ -2,7 +2,7 @@
 
 Aplicación web para el móvil en la que un profesor suma valores pulsando botones que define él. Cada pulsación se suma al total. Puede borrar el último valor y reiniciar con confirmación. El total y la lista de valores quedan a la vista.
 
-Esta versión (v0.4.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007), los botones definidos por el profesor (T-008), las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010). El aspecto es el de una calculadora de mano (T-012). En la pantalla principal se ve la plantilla en uso y se puede cambiar o crear una sin buscar el botón de Configurar (T-013). La suma no cambia.
+Esta versión (v0.4.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007), los botones definidos por el profesor (T-008), las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010). El aspecto es el de una calculadora de mano (T-012). En la pantalla principal se ve la plantilla en uso y se puede cambiar o crear una sin buscar el botón de Configurar (T-013). Se puede instalar en el móvil y, después de la primera visita, funciona sin conexión (T-014). La suma no cambia.
 
 Cada pulsación de suma añade su importe. «Borrar último» quita solo el último valor, sin preguntar. «Reset» pide confirmación y, si se acepta, deja el total en `0,00` y la lista vacía. El total y la lista se actualizan al momento, con coma y dos decimales. Cada línea se numera al pintarla según su posición, por ejemplo `P1: 1,00`. La página ocupa la altura de la pantalla: el total queda arriba, los botones abajo y solo la lista se desplaza. Tras añadir o borrar, la lista muestra el último valor.
 
@@ -117,7 +117,17 @@ Los errores de nombre (vacío, solo espacios, más de 30 caracteres, repetido o 
 python3 -m http.server
 ```
 
-El servidor indica el puerto (8000 si está libre). Abre `http://127.0.0.1:8000/` en el navegador.
+El servidor indica el puerto (8000 si está libre). Abre `http://127.0.0.1:8000/` en el navegador. Para instalarla o usarla sin conexión hace falta este servidor (o HTTPS): abrir el fichero directamente no registra el service worker.
+
+## Instalarla en el móvil
+
+La página se puede instalar como aplicación (v0.4.0). El manifiesto, el service worker y los iconos usan rutas relativas, porque se publica bajo `/calculadora-profes/`. Hace falta HTTPS, o servirla en `localhost` o `127.0.0.1`. Tras la primera visita, con los ficheros ya guardados en el dispositivo, la calculadora abre y suma sin conexión.
+
+El icono es un signo más grueso, con las esquinas un poco redondeadas: la tinta de los dígitos (`#1A2614`) sobre el verde del LCD (`#C5D6AE`). El de la pantalla de inicio lleva además el marco de la carcasa (`#1C2422`). No hay cara, texto ni degradados.
+
+**Android (Chrome).** Abre la dirección de la calculadora. En el menú del navegador (los tres puntos) elige «Añadir a pantalla de inicio» o «Instalar aplicación». El nombre corto es «Calculadora».
+
+**iPhone (Safari).** Abre la dirección. Pulsa el botón Compartir y, en la hoja que se abre, «Añadir a pantalla de inicio». El título que se propone es «Calculadora».
 
 ## Cómo probarla
 
@@ -211,11 +221,14 @@ Si una prueba falla, el proceso termina con un código distinto de cero. La carp
 
 ## Ficheros
 
-- `index.html` — página: calculadora, configurar botones y plantillas
+- `index.html` — página: calculadora, configurar botones y plantillas; enlaza el manifiesto y los iconos
 - `style.css` — calculadora de mano (carcasa, LCD, cinta y teclas), incluida la rejilla de 3 columnas
-- `app.js` — botones de suma, configurar, plantillas, borrar último, reinicio, total y lista
+- `app.js` — botones de suma, configurar, plantillas, borrar último, reinicio, total y lista; registra el service worker
 - `calc.js` — suma en céntimos y validación de botones, sin interfaz
 - `storage.js` — plantillas, sin interfaz; el almacén se inyecta
+- `manifest.json` — datos de instalación: nombre, colores de la carcasa y del LCD, iconos y rutas relativas
+- `sw.js` — service worker: precarga los ficheros propios y responde sin conexión
+- `icons/` — icono SVG, PNG de 192 y de 512, PNG maskable de 512 y apple-touch-icon de 180
 - `tests/calc.test.js` — pruebas de la suma, con Node
 - `tests/buttons.test.js` — pruebas de los botones del profesor, con Node
 - `tests/storage.test.js` — pruebas de las plantillas, con Node
