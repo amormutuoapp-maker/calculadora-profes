@@ -2,7 +2,7 @@
 
 Aplicación web para el móvil en la que un profesor podrá sumar valores pulsando botones que defina él (por ejemplo 1, 0,5 y 0,25). Cada pulsación se sumará al total; también se podrá deshacer la última operación y reiniciar con confirmación. El total y la lista de valores quedarán a la vista.
 
-Esta versión (v0.1.0) trae la estructura de la pantalla (T-001), la lógica de suma en céntimos enteros (T-002) y tres botones fijos — 1, 0,5 y 0,25 — conectados a esa lógica (T-003). Cada pulsación suma su importe. El total y la lista se actualizan al momento, con coma y dos decimales. Todavía no se puede borrar el último valor ni reiniciar.
+Esta versión (v0.1.0) trae la estructura de la pantalla (T-001), la lógica de suma en céntimos enteros (T-002), tres botones fijos — 1, 0,5 y 0,25 — conectados a esa lógica (T-003) y las acciones de borrar el último valor y reiniciar (T-004). Cada pulsación de suma añade su importe. «Borrar último» quita solo el último valor, sin preguntar. «Reset» pide confirmación y, si se acepta, deja el total en `0,00` y la lista vacía. El total y la lista se actualizan al momento, con coma y dos decimales. No se guarda el estado al cerrar o recargar.
 
 No usa servidor de aplicación, no envía datos y no guarda información personal. Se abre en el navegador, también sin conexión, y no depende de librerías externas.
 
@@ -21,9 +21,11 @@ El servidor indica el puerto (8000 si está libre). Abre `http://127.0.0.1:8000/
 ## Cómo probarla
 
 1. Abre la página con uno de los dos métodos.
-2. Comprueba que el total muestra `0,00` y que la lista indica que todavía no hay valores. Hay tres botones: `1`, `0,5` y `0,25`.
+2. Comprueba que el total muestra `0,00` y que la lista indica que todavía no hay valores. Hay tres botones de suma: `1`, `0,5` y `0,25`. Debajo, «Borrar último» (desactivado si no hay valores) y, más abajo y a un lado, «Reset».
 3. Pulsa `1`, después `0,5` y después `0,25`. El total debe mostrar `1,75` y la lista, en ese orden, `1,00`, `0,50` y `0,25`.
-4. Estrecha la ventana o usa la vista de móvil en vertical. El texto debe verse grande, los botones cómodos de pulsar y el foco visible al recorrerlos con el teclado.
+4. Pulsa «Borrar último». El total pasa a `1,50` y la lista queda en `1,00` y `0,50`. No pregunta.
+5. Pulsa «Reset» y cancela. El total y la lista no cambian. Pulsa «Reset» y acepta: el total vuelve a `0,00` y se lee otra vez que todavía no hay valores. «Borrar último» queda desactivado.
+6. Estrecha la ventana o usa la vista de móvil en vertical. El texto debe verse grande, los botones cómodos de pulsar (al menos 48 px) y el foco visible al recorrerlos con el teclado.
 
 ## Lógica de suma
 
@@ -59,7 +61,9 @@ El mensaje indica el motivo: vacío, caracteres no numéricos, negativo, más de
 
 La pantalla crea tres botones fijos: `1`, `0,5` y `0,25`. La etiqueta visible es el importe. Al arrancar, `app.js` la convierte a céntimos con `parseToCents` y, en cada pulsación, pasa ese entero a `addValue`. No suma decimales en coma flotante.
 
-Después de cada pulsación se vuelven a pintar el total (`#total`) y la lista (`#value-list`) con `formatCents`. Al abrir la página el total es `0,00` y, si no hay valores, se lee el texto de lista vacía. Los botones miden al menos 48 px, el texto es grande y el foco se ve al navegar con el teclado. El total tiene `aria-live` para anunciar el cambio. Borrar el último valor y reiniciar quedan fuera de esta versión.
+Después de cada suma, de borrar el último valor o de aceptar el reinicio se vuelven a pintar el total (`#total`) y la lista (`#value-list`) con `formatCents`. Al abrir la página el total es `0,00` y, si no hay valores, se lee el texto de lista vacía. Los botones miden al menos 48 px, el texto es grande y el foco se ve al navegar con el teclado. El total tiene `aria-live` para anunciar el cambio.
+
+«Borrar último» llama a `removeLast` y no pide confirmación. Si la lista está vacía, el botón queda desactivado; al sumar se activa y, al vaciar la lista, se desactiva otra vez. «Reset» está en otro bloque, más abajo y alineado al final, con borde distinto. Antes de llamar a `reset` pregunta con `window.confirm`. Si se cancela, no cambia nada. Si se acepta, el total queda en `0,00` y vuelve el texto de lista vacía. No se guarda nada entre visitas.
 
 ## Cómo ejecutar las pruebas
 
@@ -75,6 +79,6 @@ No hace falta instalar nada. Si una prueba falla, el proceso termina con un cód
 
 - `index.html` — página
 - `style.css` — presentación para móvil
-- `app.js` — botones de suma, total y lista, conectados a Calc
+- `app.js` — botones de suma, borrar último, reinicio, total y lista, conectados a Calc
 - `calc.js` — suma en céntimos, sin interfaz
 - `tests/calc.test.js` — pruebas de la lógica, con Node

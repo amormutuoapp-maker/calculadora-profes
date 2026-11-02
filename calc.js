@@ -2,7 +2,8 @@
  * Calculadora para profesores — lógica pura de suma (T-002, v0.1.0).
  *
  * Trabaja solo con enteros (céntimos). No lee la página, no guarda
- * datos y no usa la red. La pantalla no llama a este fichero todavía.
+ * datos y no usa la red. La pantalla lo usa para sumar, quitar el
+ * último valor y reiniciar.
  *
  * Carga:
  * - Navegador: objeto global Calc.
