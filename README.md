@@ -2,9 +2,17 @@
 
 Aplicación web para el móvil en la que un profesor suma valores pulsando botones que define él. Cada pulsación se suma al total. Puede borrar el último valor y reiniciar con confirmación. El total y la lista de valores quedan a la vista.
 
-Esta versión (v0.3.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007) y los botones definidos por el profesor (T-008). Añade las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010).
+Esta versión (v0.4.0) mantiene la suma en céntimos (T-002), borrar el último valor y reiniciar (T-004), la pantalla de móvil en vertical (T-005), el número de pregunta (T-007), los botones definidos por el profesor (T-008), las plantillas de botones (T-009) y actualizar la plantilla en uso (T-010). Añade el icono de la aplicación (T-011).
 
 Cada pulsación de suma añade su importe. «Borrar último» quita solo el último valor, sin preguntar. «Reset» pide confirmación y, si se acepta, deja el total en `0,00` y la lista vacía. El total y la lista se actualizan al momento, con coma y dos decimales. Cada línea se numera al pintarla según su posición, por ejemplo `P1: 1,00`. La página ocupa la altura de la pantalla: el total queda arriba, los botones abajo y solo la lista se desplaza. Tras añadir o borrar, la lista muestra el último valor.
+
+## Icono
+
+El icono está en `icon.svg`, en la raíz, dibujado a mano (trazados y círculos; sin imágenes incrustadas ni texto). Es una cara de frente: pelo corto y voluminoso, barba poblada y gafas redondas. El fondo es un cuadrado redondeado del verde de la pantalla LCD (`#C5D6AE`) y la silueta es el grafito de la carcasa (`#1C2422`). Las gafas son huecos de ese mismo verde, para que se lean a 48 px. Esos dos colores son los de T-012, para que el icono combine cuando se unan las dos ramas.
+
+Sirve de favicon (`image/svg+xml`) y sale pequeño junto al título. La imagen no tiene texto alternativo y lleva `aria-hidden`, porque el título ya dice el nombre y no hay que repetirlo.
+
+`icon-192.png` e `icon-512.png` son el mismo dibujo, rasterizado con Chrome. No hay manifiesto.
 
 ## Qué se guarda y qué no
 
@@ -150,6 +158,8 @@ Si una prueba falla, el proceso termina con un código distinto de cero. La carp
 ## Ficheros
 
 - `index.html` — página: calculadora, configurar botones y plantillas
+- `icon.svg` — icono de la aplicación, también usado como favicon
+- `icon-192.png`, `icon-512.png` — el mismo icono rasterizado
 - `style.css` — presentación para móvil, incluida la rejilla de 3 columnas
 - `app.js` — botones de suma, configurar, plantillas, borrar último, reinicio, total y lista
 - `calc.js` — suma en céntimos y validación de botones, sin interfaz

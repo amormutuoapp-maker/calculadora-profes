@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Calculadora para profesores</title>
-  <!-- Icono vacío para no pedir favicon al servidor. -->
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <!-- Suma y botones (T-002, T-008), plantillas (T-009), luego la pantalla. -->
   <script src="calc.js" defer></script>
@@ -16,7 +15,7 @@
   <div class="app-shell">
     <div id="calculator-screen" class="screen">
       <header class="top-bar">
-        <h1>Calculadora para profesores</h1>
+        <h1><img class="app-mark" src="icon.svg" alt="" width="36" height="36" aria-hidden="true">Calculadora para profesores</h1>
         <p>Configura los botones y, si quieres, guárdalos como plantilla. El total no se guarda.</p>
         <p id="storage-warning" class="storage-warning" role="alert" hidden></p>
         <section class="total-panel" aria-labelledby="total-heading">
