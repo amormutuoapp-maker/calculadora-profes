@@ -1,5 +1,5 @@
 /* Calculadora para profesores — aspecto de calculadora clásica
-   (T-012, v0.4.0).
+   (T-012, v0.4.0). El selector de plantilla de la principal es T-013.
    La conducta no cambia: una columna a la altura de la pantalla,
    el total arriba, la cinta en el medio (única zona con scroll) y
    las teclas abajo. Rejilla de 3 columnas. Con 12 teclas son 4
@@ -185,6 +185,69 @@ h2 {
   line-height: 1.05;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Selector junto a la LCD. Mismos colores que la pantalla y que
+   las teclas de función: no hay tinta nueva. */
+.template-picker {
+  margin-top: 0.4rem;
+  min-width: 0;
+}
+
+.template-picker-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+#template-picker {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 0.4rem;
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--lcd-ink);
+  background-color: var(--lcd-bg);
+  border: 3px solid transparent;
+  border-radius: 10px;
+  /* El aparato no cambia en oscuro: el control se pinta en claro
+     para que el LCD no salga invertido. */
+  color-scheme: light;
+  touch-action: manipulation;
+}
+
+#template-picker:disabled {
+  opacity: 1;
+  color: var(--lcd-ink);
+  -webkit-text-fill-color: var(--lcd-ink);
+  background-color: var(--lcd-bg);
+}
+
+.template-new-button {
+  --lip: var(--fn-lip);
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0.35rem 0.6rem;
+  background: var(--fn);
+  color: var(--case);
+  white-space: nowrap;
+}
+
+.top-bar .template-picker-hint {
+  margin-top: 0.15rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 /* Cinta bajo la pantalla: el papel de la suma. */
@@ -450,7 +513,9 @@ textarea,
 }
 
 input:focus,
-input:focus-visible {
+input:focus-visible,
+select:focus,
+select:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
@@ -703,10 +768,11 @@ input:focus-visible {
   line-height: 1.3;
 }
 
-/* Con poca altura (320×640 y 12 teclas) se aprieta el marco para que
-   el total, la cinta y las teclas sigan a la vista. A partir de 700 px
-   de alto se usa el marco holgado de arriba. */
-@media (max-height: 700px) {
+/* Con poca altura (320×640 o 360×740 y 12 teclas) se aprieta el marco
+   para que, además del selector, sigan a la vista el total, una línea
+   de la cinta y las teclas. A partir de 820 px de alto se usa el marco
+   holgado de arriba. */
+@media (max-height: 820px) {
   :root {
     --frame: 4px;
   }
@@ -716,7 +782,7 @@ input:focus-visible {
   }
 
   .top-bar {
-    padding: 0.4rem 0.6rem 0.2rem;
+    padding: 0.25rem 0.55rem 0.12rem;
   }
 
   h1 {
@@ -725,51 +791,76 @@ input:focus-visible {
 
   .top-bar p,
   #templates-intro {
-    margin-top: 0.1rem;
+    margin-top: 0.05rem;
     font-size: 0.875rem;
-    line-height: 1.2;
+    line-height: 1.15;
   }
 
   .total-panel {
-    margin-top: 0.22rem;
-    padding: 0.22rem 0.55rem 0.24rem;
+    margin-top: 0.12rem;
+    padding: 0.12rem 0.5rem 0.12rem;
   }
 
   .total-value {
-    font-size: clamp(2rem, 10vw, 2.5rem);
+    font-size: clamp(1.75rem, 9vw, 2.15rem);
+  }
+
+  .template-picker {
+    margin-top: 0.15rem;
+  }
+
+  .template-picker-row {
+    gap: 0.3rem;
+  }
+
+  .top-bar .template-picker-hint {
+    margin-top: 0.08rem;
   }
 
   .list-panel {
-    margin: 0.2rem 0.55rem 0.05rem;
-    padding: 0.18rem 0.45rem 0.16rem;
-  }
-
-  .list-panel h2 {
-    margin-bottom: 0.04rem;
+    margin: 0.12rem 0.55rem 0.05rem;
+    padding: 0.12rem 0.45rem 0.1rem;
   }
 
   #value-list li {
-    padding: 0.16rem 0.05rem;
+    padding: 0.08rem 0.05rem;
   }
 
   .action-bar {
-    gap: 0.35rem;
-    padding: 0.28rem 0.6rem 0.45rem;
+    gap: 0.25rem;
+    padding: 0.2rem 0.55rem 0.28rem;
   }
 
   .sum-buttons,
   .form-actions,
   .template-actions,
   .config-footer {
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
 
   .reset-zone {
-    padding-top: 0.3rem;
+    padding-top: 0.15rem;
   }
 
   .reset-zone p {
     font-size: 0.875rem;
     line-height: 1.2;
+  }
+}
+
+/* Solo en 320×640 (y alturas parecidas) el título de la cinta sale
+   del flujo. Sigue asociado a la lista para el lector de pantalla.
+   A 360×740 ya cabe, así que ahí se ve. */
+@media (max-height: 680px) {
+  .list-panel h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 }

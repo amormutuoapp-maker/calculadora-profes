@@ -2,7 +2,7 @@
 
 /**
  * Calculadora para profesores — pantalla (T-003, T-004, T-005, T-007,
- * T-008, T-009 y T-010, v0.3.0).
+ * T-008, T-009, T-010 y T-013, v0.3.0).
  *
  * Conecta la página con Calc y con ButtonStore. Los botones de suma
  * salen de la última plantilla usada. Si no hay ninguna, si se borró
@@ -34,6 +34,15 @@
  * El total y la lista viven solo en memoria: no se guardan, y cargar
  * o actualizar una plantilla no los cambia. Los nombres se pintan
  * con textContent.
+ *
+ * T-013: en la principal, un selector nativo muestra la plantilla en
+ * uso o «Sin plantilla». Elegir otra llama a la misma función que
+ * «Cargar» y no toca el total ni la lista. «Nueva plantilla» abre el
+ * formulario que ya existe, con el foco en el nombre. Si el guardado
+ * sale bien, se vuelve a la calculadora. Si el nombre no sirve, el
+ * error es el de siempre y se permanece en el formulario. Renombrar,
+ * borrar y actualizar siguen solo en Plantillas. Las opciones del
+ * selector se crean con createElement y textContent.
  */
 
 var RESET_CONFIRM_MESSAGE = '¿Reiniciar la calculadora? Se borrarán el total y todos los valores.';
@@ -189,6 +198,9 @@ function initApp() {
   var templateUpdateButton = document.getElementById('template-update');
   var templateList = document.getElementById('template-list');
   var templateEmpty = document.getElementById('template-empty');
+  var templatePicker = document.getElementById('template-picker');
+  var templatePickerHint = document.getElementById('template-picker-hint');
+  var templateNewButton = document.getElementById('template-new');
   var repo = ButtonStore.createRepository(ButtonStore.openBrowserStorage());
   var startupButtons = repo.getStartupButtons();
   var state = Calc.createState();
@@ -197,6 +209,7 @@ function initApp() {
   var renamingName = null;
   var renameDraft = '';
   var renameError = '';
+  var templatesOpenedFromCalculator = false;
   var removeButton;
 
   function paint() {
@@ -422,6 +435,7 @@ function initApp() {
     showStorageWarning(result.warning);
     if (!result.ok || !result.buttons) {
       setTemplateStatus('');
+      renderTemplatePicker();
       return;
     }
     applyButtons(result.buttons);
@@ -591,11 +605,64 @@ function initApp() {
       templateInUse.textContent = 'Ninguna plantilla en uso';
       templateUpdateButton.disabled = true;
       templateUpdateButton.setAttribute('aria-disabled', 'true');
-      return;
+    } else {
+      templateInUse.textContent = 'Plantilla en uso: ' + name;
+      templateUpdateButton.disabled = false;
+      templateUpdateButton.setAttribute('aria-disabled', 'false');
     }
-    templateInUse.textContent = 'Plantilla en uso: ' + name;
-    templateUpdateButton.disabled = false;
-    templateUpdateButton.setAttribute('aria-disabled', 'false');
+    renderTemplatePicker();
+  }
+
+  /**
+   * Selector de la principal. Misma lista que Plantillas. La opción
+   * «Sin plantilla» no carga nada: no hay forma de dejar la plantilla
+   * sin usar desde aquí. Sin plantillas, el selector se desactiva.
+   */
+  function renderTemplatePicker() {
+    var items = repo.listTemplates();
+    var current = repo.getLastUsedName();
+    var empty = items.length === 0;
+    var index;
+    var option;
+
+    clearChildren(templatePicker);
+
+    option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Sin plantilla';
+    /* No se puede «dejar sin plantilla»: esa acción no existe.
+       Si ya hay una en uso, la opción queda desactivada. */
+    option.disabled = current !== null;
+    if (current === null) {
+      option.selected = true;
+    }
+    templatePicker.appendChild(option);
+
+    for (index = 0; index < items.length; index += 1) {
+      option = document.createElement('option');
+      option.value = items[index].name;
+      option.textContent = items[index].name;
+      if (items[index].name === current) {
+        option.selected = true;
+      }
+      templatePicker.appendChild(option);
+    }
+
+    if (current === null) {
+      templatePicker.value = '';
+    } else {
+      templatePicker.value = current;
+    }
+
+    templatePicker.disabled = empty;
+    if (empty) {
+      templatePicker.setAttribute('aria-disabled', 'true');
+      templatePicker.setAttribute('aria-describedby', 'template-picker-hint');
+    } else {
+      templatePicker.removeAttribute('aria-disabled');
+      templatePicker.removeAttribute('aria-describedby');
+    }
+    templatePickerHint.hidden = !empty;
   }
 
   function renderTemplateList() {
@@ -699,7 +766,7 @@ function initApp() {
     openConfigButton.focus();
   }
 
-  function openTemplates() {
+  function showTemplatesScreen() {
     calculatorScreen.hidden = true;
     configScreen.hidden = true;
     templatesScreen.hidden = false;
@@ -708,7 +775,41 @@ function initApp() {
     templateNameInput.focus();
   }
 
+  function openTemplates() {
+    templatesOpenedFromCalculator = false;
+    templatesBackButton.textContent = 'Volver a configurar';
+    showTemplatesScreen();
+  }
+
+  /**
+   * Desde la principal: el mismo formulario de plantilla nueva, con
+   * el foco en el nombre. Al guardar bien se vuelve a la calculadora.
+   */
+  function openNewTemplate() {
+    templatesOpenedFromCalculator = true;
+    templatesBackButton.textContent = 'Volver a la calculadora';
+    templateNameInput.value = '';
+    showTemplateNameError('');
+    setTemplateStatus('');
+    showTemplatesScreen();
+  }
+
+  function returnToCalculator() {
+    templatesOpenedFromCalculator = false;
+    templatesBackButton.textContent = 'Volver a configurar';
+    templatesScreen.hidden = true;
+    configScreen.hidden = true;
+    calculatorScreen.hidden = false;
+    renderSumButtons();
+    scrollListToEnd(listElement);
+    templateNewButton.focus();
+  }
+
   function closeTemplates() {
+    if (templatesOpenedFromCalculator) {
+      returnToCalculator();
+      return;
+    }
     templatesScreen.hidden = true;
     calculatorScreen.hidden = true;
     configScreen.hidden = false;
@@ -755,7 +856,20 @@ function initApp() {
     renameError = '';
     setTemplateStatus('Plantilla guardada. Si cambias los botones, no se modifican hasta que pulses «Actualizar plantilla».');
     renderTemplateList();
+    if (templatesOpenedFromCalculator) {
+      returnToCalculator();
+      return;
+    }
     templateNameInput.focus();
+  }
+
+  function onTemplatePickerChange() {
+    var name = templatePicker.value;
+    if (!name) {
+      renderTemplatePicker();
+      return;
+    }
+    onUseTemplate(name);
   }
 
   removeButton = createRemoveButton(removeLastValue);
@@ -777,6 +891,8 @@ function initApp() {
   form.addEventListener('submit', onSubmit);
   templateForm.addEventListener('submit', onTemplateSubmit);
   templateUpdateButton.addEventListener('click', onUpdateTemplate);
+  templateNewButton.addEventListener('click', openNewTemplate);
+  templatePicker.addEventListener('change', onTemplatePickerChange);
 }
 
 initApp();
