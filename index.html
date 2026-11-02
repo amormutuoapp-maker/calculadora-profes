@@ -7,7 +7,7 @@
   <!-- Icono vacío para no pedir favicon al servidor. -->
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
-  <!-- Suma y botones (T-002, T-008), plantillas (T-009), luego la pantalla. -->
+  <!-- Suma y botones (T-002, T-008), plantillas (T-009), selector (T-013), luego la pantalla. -->
   <script src="calc.js" defer></script>
   <script src="storage.js" defer></script>
   <script src="app.js" defer></script>
@@ -23,6 +23,15 @@
           <h2 id="total-heading">Total</h2>
           <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
         </section>
+        <!-- T-013: la plantilla en uso, junto a la pantalla. Las opciones las crea app.js. -->
+        <div class="template-picker">
+          <label id="template-picker-label" class="visually-hidden" for="template-picker">Plantilla</label>
+          <div class="template-picker-row">
+            <select id="template-picker" aria-describedby="template-picker-hint"></select>
+            <button type="button" id="template-new" class="template-new-button">Nueva plantilla</button>
+          </div>
+          <p id="template-picker-hint" class="template-picker-hint">Aún no hay plantillas: pulsa Nueva plantilla</p>
+        </div>
       </header>
 
       <main class="app-body">
