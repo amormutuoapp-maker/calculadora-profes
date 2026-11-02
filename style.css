@@ -1,4 +1,4 @@
-/* Calculadora para profesores — estilos de la estructura (T-001).
+/* Calculadora para profesores — estilos (T-001, botones en T-003).
    Móvil en vertical, fuentes del sistema. Sin hojas importadas ni recursos remotos. */
 
 :root {
@@ -88,8 +88,7 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
-#list-placeholder,
-#buttons-placeholder {
+#list-placeholder {
   color: var(--muted);
 }
 
@@ -104,22 +103,30 @@ h2 {
 
 .sum-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  min-height: 48px;
-  margin-bottom: 0.75rem;
 }
 
-button {
+button,
+.sum-button {
   min-width: 48px;
   min-height: 48px;
-  padding: 0.75rem 1rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
   font: inherit;
+  font-size: 2rem;
   font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
   color: var(--fg);
   background: var(--bg);
   border: 2px solid var(--line);
   touch-action: manipulation;
+}
+
+.sum-button {
+  display: block;
+  width: 100%;
 }
 
 a,

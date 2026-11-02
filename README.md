@@ -2,7 +2,7 @@
 
 Aplicación web para el móvil en la que un profesor podrá sumar valores pulsando botones que defina él (por ejemplo 1, 0,5 y 0,25). Cada pulsación se sumará al total; también se podrá deshacer la última operación y reiniciar con confirmación. El total y la lista de valores quedarán a la vista.
 
-Esta versión (v0.1.0) trae la estructura de la pantalla (T-001) y la lógica de suma en céntimos enteros (T-002). La pantalla todavía no llama a esa lógica: no hay botones y el total no cambia al tocar.
+Esta versión (v0.1.0) trae la estructura de la pantalla (T-001), la lógica de suma en céntimos enteros (T-002) y tres botones fijos — 1, 0,5 y 0,25 — conectados a esa lógica (T-003). Cada pulsación suma su importe. El total y la lista se actualizan al momento, con coma y dos decimales. Todavía no se puede borrar el último valor ni reiniciar.
 
 No usa servidor de aplicación, no envía datos y no guarda información personal. Se abre en el navegador, también sin conexión, y no depende de librerías externas.
 
@@ -21,9 +21,9 @@ El servidor indica el puerto (8000 si está libre). Abre `http://127.0.0.1:8000/
 ## Cómo probarla
 
 1. Abre la página con uno de los dos métodos.
-2. Comprueba que se ven el título, la zona **Total** (con un marcador vacío), la zona **Lista de valores** (sin importes) y un contenedor reservado a los botones.
-3. En esta versión no hay botones de suma: el total no cambia al tocar la pantalla.
-4. Estrecha la ventana o usa la vista de móvil en vertical. El texto debe verse grande y con contraste alto.
+2. Comprueba que el total muestra `0,00` y que la lista indica que todavía no hay valores. Hay tres botones: `1`, `0,5` y `0,25`.
+3. Pulsa `1`, después `0,5` y después `0,25`. El total debe mostrar `1,75` y la lista, en ese orden, `1,00`, `0,50` y `0,25`.
+4. Estrecha la ventana o usa la vista de móvil en vertical. El texto debe verse grande, los botones cómodos de pulsar y el foco visible al recorrerlos con el teclado.
 
 ## Lógica de suma
 
@@ -55,6 +55,12 @@ El mensaje indica el motivo: vacío, caracteres no numéricos, negativo, más de
 
 `createState` empieza con total 0 y lista vacía. `addValue` añade céntimos y devuelve otro estado; no cambia el anterior. `removeLast` quita el último valor; si la lista está vacía no falla y devuelve el mismo estado. `reset` deja el total a 0 y la lista vacía. `getTotal` y `getList` leen el estado. El total es la suma entera de la lista.
 
+## Botones de esta versión
+
+La pantalla crea tres botones fijos: `1`, `0,5` y `0,25`. La etiqueta visible es el importe. Al arrancar, `app.js` la convierte a céntimos con `parseToCents` y, en cada pulsación, pasa ese entero a `addValue`. No suma decimales en coma flotante.
+
+Después de cada pulsación se vuelven a pintar el total (`#total`) y la lista (`#value-list`) con `formatCents`. Al abrir la página el total es `0,00` y, si no hay valores, se lee el texto de lista vacía. Los botones miden al menos 48 px, el texto es grande y el foco se ve al navegar con el teclado. El total tiene `aria-live` para anunciar el cambio. Borrar el último valor y reiniciar quedan fuera de esta versión.
+
 ## Cómo ejecutar las pruebas
 
 Desde la carpeta del proyecto:
@@ -69,6 +75,6 @@ No hace falta instalar nada. Si una prueba falla, el proceso termina con un cód
 
 - `index.html` — página
 - `style.css` — presentación para móvil
-- `app.js` — esqueleto del programa, sin lógica de suma
+- `app.js` — botones de suma, total y lista, conectados a Calc
 - `calc.js` — suma en céntimos, sin interfaz
 - `tests/calc.test.js` — pruebas de la lógica, con Node

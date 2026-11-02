@@ -14,13 +14,13 @@
 <body>
   <header>
     <h1>Calculadora para profesores</h1>
-    <p>Versión inicial: solo la estructura de la pantalla.</p>
+    <p>Suma 1, 0,5 o 0,25. Cada pulsación se añade al total.</p>
   </header>
 
   <main>
     <section aria-labelledby="total-heading">
       <h2 id="total-heading">Total</h2>
-      <output id="total" class="total-value" aria-live="polite" aria-atomic="true">—</output>
+      <output id="total" class="total-value" aria-live="polite" aria-atomic="true">0,00</output>
     </section>
 
     <section aria-labelledby="list-heading">
@@ -31,8 +31,8 @@
 
     <section aria-labelledby="buttons-heading">
       <h2 id="buttons-heading">Botones</h2>
+      <!-- app.js crea aquí los tres botones fijos, con createElement. -->
       <div id="sum-buttons" class="sum-buttons" role="group" aria-label="Botones de suma"></div>
-      <p id="buttons-placeholder">Los botones de suma se añadirán más adelante.</p>
     </section>
   </main>
 </body>
