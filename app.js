@@ -1,29 +1,33 @@
 'use strict';
 
 /**
- * Calculadora para profesores — pantalla (T-003, T-004, T-005, T-007
- * y T-008, v0.2.0).
+ * Calculadora para profesores — pantalla (T-003, T-004, T-005, T-007,
+ * T-008 y T-009, v0.3.0).
  *
- * Conecta la página con el objeto global Calc. Los botones de suma
- * salen de la lista en memoria (al arrancar: 1, 0,5 y 0,25). Cada
- * pulsación llama a Calc.addValue con los céntimos de ese botón.
- * «Borrar último» llama a Calc.removeLast, sin confirmación. «Reset»
- * pide confirmación con window.confirm y, solo si se acepta, llama
- * a Calc.reset.
+ * Conecta la página con Calc y con ButtonStore. Los botones de suma
+ * salen de la última plantilla usada. Si no hay ninguna, si se borró
+ * o si los datos no se pueden leer, son 1, 0,5 y 0,25.
  *
- * «Configurar botones» abre otra pantalla para añadir, editar y quitar
- * valores. La validación es la de Calc (validateButtonValue, addButton,
- * updateButton, removeButton). Un texto inválido no crea ni cambia un
- * botón. Con un solo botón, Quitar queda desactivado. Cambiar los
- * botones no toca el total ni la lista de la suma.
+ * Cada pulsación llama a Calc.addValue. «Borrar último» llama a
+ * Calc.removeLast, sin confirmación. «Reset» pide confirmación con
+ * window.confirm y, solo si se acepta, llama a Calc.reset.
  *
- * La etiqueta visible de cada botón de suma es Calc.formatCents
- * (coma y dos decimales): 1 → «1,00», 0,5 → «0,50», 0,25 → «0,25».
- * El número de pregunta (P1, P2, ...) es el índice más uno al pintar;
- * no se guarda en Calc.
+ * «Configurar botones» añade, edita y quita valores con la validación
+ * de Calc. Un texto inválido no crea ni cambia un botón. Con un solo
+ * botón, Quitar queda desactivado. Cambiar los botones no toca el
+ * total ni la lista, y tampoco modifica la plantilla ya guardada:
+ * no hay acción de sobrescribir. Al recargar se ven los botones
+ * guardados de la última plantilla cargada o recién guardada.
  *
- * El estado vive solo en memoria: al recargar vuelven los tres botones
- * iniciales y la suma vacía. No hay peticiones de red ni datos personales.
+ * «Plantillas» guarda una plantilla nueva, carga, renombra y borra.
+ * Borrar pide window.confirm. Guardar, cargar y renombrar no. Los
+ * errores de nombre salen junto al campo. Si el almacén no está o
+ * los datos están dañados, la suma sigue y el aviso queda en pantalla.
+ *
+ * La etiqueta visible de cada botón de suma es Calc.formatCents.
+ * El número de pregunta (P1, P2, ...) es el índice más uno al pintar.
+ * El total y la lista viven solo en memoria: no se guardan, y cargar
+ * una plantilla no los cambia. Los nombres se pintan con textContent.
  */
 
 var RESET_CONFIRM_MESSAGE = '¿Reiniciar la calculadora? Se borrarán el total y todos los valores.';
@@ -45,6 +49,15 @@ function listItemLabels(index, cents) {
     text: 'P' + number + ': ' + amount,
     ariaLabel: 'Pregunta ' + number + ': ' + amount
   };
+}
+
+function buttonsSummary(centsList) {
+  var parts = [];
+  var index;
+  for (index = 0; index < centsList.length; index += 1) {
+    parts.push(Calc.formatCents(centsList[index]));
+  }
+  return parts.join(' · ');
 }
 
 function render(totalElement, listElement, placeholderElement, state) {
@@ -125,6 +138,10 @@ function createResetButton(onReset) {
   return button;
 }
 
+function deleteConfirmMessage(name) {
+  return '¿Borrar la plantilla «' + name + '»? No cambia el total ni la lista.';
+}
+
 function initApp() {
   var totalElement = document.getElementById('total');
   var listElement = document.getElementById('value-list');
@@ -134,8 +151,11 @@ function initApp() {
   var resetElement = document.getElementById('reset-buttons');
   var calculatorScreen = document.getElementById('calculator-screen');
   var configScreen = document.getElementById('config-screen');
+  var templatesScreen = document.getElementById('templates-screen');
   var openConfigButton = document.getElementById('open-config');
+  var openTemplatesButton = document.getElementById('open-templates');
   var backButton = document.getElementById('config-back');
+  var templatesBackButton = document.getElementById('templates-back');
   var form = document.getElementById('button-form');
   var valueInput = document.getElementById('button-value');
   var valueError = document.getElementById('button-value-error');
@@ -145,9 +165,22 @@ function initApp() {
   var editNote = document.getElementById('edit-note');
   var configNote = document.getElementById('config-note');
   var configList = document.getElementById('config-list');
+  var storageWarning = document.getElementById('storage-warning');
+  var templatesStorageWarning = document.getElementById('templates-storage-warning');
+  var templateForm = document.getElementById('template-form');
+  var templateNameInput = document.getElementById('template-name');
+  var templateNameError = document.getElementById('template-name-error');
+  var templateStatus = document.getElementById('template-status');
+  var templateList = document.getElementById('template-list');
+  var templateEmpty = document.getElementById('template-empty');
+  var repo = ButtonStore.createRepository(ButtonStore.openBrowserStorage());
+  var startupButtons = repo.getStartupButtons();
   var state = Calc.createState();
-  var buttons = Calc.createDefaultButtons();
+  var buttons = startupButtons === null ? Calc.createDefaultButtons() : startupButtons;
   var editingIndex = null;
+  var renamingName = null;
+  var renameDraft = '';
+  var renameError = '';
   var removeButton;
 
   function paint() {
@@ -190,6 +223,23 @@ function initApp() {
   function clearFieldError() {
     valueError.textContent = '';
     valueInput.setAttribute('aria-invalid', 'false');
+  }
+
+  function showStorageWarning(message) {
+    var text = message || '';
+    storageWarning.textContent = text;
+    templatesStorageWarning.textContent = text;
+    storageWarning.hidden = text.length === 0;
+    templatesStorageWarning.hidden = text.length === 0;
+  }
+
+  function showTemplateNameError(message) {
+    templateNameError.textContent = message || '';
+    templateNameInput.setAttribute('aria-invalid', message ? 'true' : 'false');
+  }
+
+  function setTemplateStatus(message) {
+    templateStatus.textContent = message || '';
   }
 
   function renderConfigNote() {
@@ -237,6 +287,14 @@ function initApp() {
         editingIndex -= 1;
       }
     }
+    renderSumButtons();
+    renderConfigNote();
+    renderConfigList();
+  }
+
+  function applyButtons(next) {
+    buttons = next;
+    exitEditMode();
     renderSumButtons();
     renderConfigNote();
     renderConfigList();
@@ -296,8 +354,234 @@ function initApp() {
     }
   }
 
+  function paintRenameError() {
+    var field = document.getElementById('template-rename-input');
+    var errorElement = document.getElementById('template-rename-error');
+    if (!field || !errorElement) {
+      renderTemplateList();
+      return;
+    }
+    errorElement.textContent = renameError;
+    field.setAttribute('aria-invalid', renameError ? 'true' : 'false');
+    field.focus();
+  }
+
+  function startRename(name) {
+    renamingName = name;
+    renameDraft = name;
+    renameError = '';
+    setTemplateStatus('');
+    renderTemplateList();
+    var field = document.getElementById('template-rename-input');
+    if (field) {
+      field.focus();
+      field.select();
+    }
+  }
+
+  function cancelRename() {
+    renamingName = null;
+    renameDraft = '';
+    renameError = '';
+    renderTemplateList();
+  }
+
+  function onRenameSubmit() {
+    var result = repo.renameTemplate(renamingName, renameDraft);
+    showStorageWarning(result.warning);
+    if (!result.ok) {
+      renameError = result.error;
+      paintRenameError();
+      return;
+    }
+    renamingName = null;
+    renameDraft = '';
+    renameError = '';
+    setTemplateStatus('Nombre actualizado.');
+    renderTemplateList();
+  }
+
+  function onUseTemplate(name) {
+    var result = repo.useTemplate(name);
+    showStorageWarning(result.warning);
+    if (!result.ok || !result.buttons) {
+      setTemplateStatus('');
+      return;
+    }
+    applyButtons(result.buttons);
+    renamingName = null;
+    renameDraft = '';
+    renameError = '';
+    if (result.persisted) {
+      setTemplateStatus('Plantilla cargada. El total y la lista siguen igual.');
+    } else {
+      setTemplateStatus('Botones cargados en esta visita. No se ha podido recordar la plantilla.');
+    }
+    renderTemplateList();
+  }
+
+  function onRemoveTemplate(name) {
+    var accepted = window.confirm(deleteConfirmMessage(name));
+    var result;
+    if (!accepted) {
+      return;
+    }
+    result = repo.removeTemplate(name);
+    showStorageWarning(result.warning);
+    if (!result.ok) {
+      setTemplateStatus('');
+      return;
+    }
+    if (renamingName === name) {
+      renamingName = null;
+      renameDraft = '';
+      renameError = '';
+    }
+    setTemplateStatus('Plantilla borrada. Los botones de la calculadora siguen igual.');
+    renderTemplateList();
+  }
+
+  function createRenameBlock() {
+    var block = document.createElement('div');
+    var label = document.createElement('label');
+    var input = document.createElement('input');
+    var errorElement = document.createElement('p');
+    var saveNameButton = document.createElement('button');
+    var cancelNameButton = document.createElement('button');
+
+    block.className = 'template-rename';
+
+    label.setAttribute('for', 'template-rename-input');
+    label.textContent = 'Nuevo nombre';
+
+    input.id = 'template-rename-input';
+    input.className = 'text-input';
+    input.type = 'text';
+    input.setAttribute('inputmode', 'text');
+    input.maxLength = 40;
+    input.autocomplete = 'off';
+    input.setAttribute('autocapitalize', 'off');
+    input.spellcheck = false;
+    input.value = renameDraft;
+    input.setAttribute('aria-describedby', 'template-rename-error');
+    input.setAttribute('aria-invalid', renameError ? 'true' : 'false');
+
+    errorElement.id = 'template-rename-error';
+    errorElement.className = 'field-error';
+    errorElement.setAttribute('role', 'alert');
+    errorElement.textContent = renameError;
+
+    saveNameButton.type = 'button';
+    saveNameButton.className = 'template-action primary-action';
+    saveNameButton.textContent = 'Guardar nombre';
+
+    cancelNameButton.type = 'button';
+    cancelNameButton.className = 'template-action secondary-action';
+    cancelNameButton.textContent = 'Cancelar';
+
+    input.addEventListener('input', function () {
+      renameDraft = input.value;
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        onRenameSubmit();
+      }
+    });
+    saveNameButton.addEventListener('click', onRenameSubmit);
+    cancelNameButton.addEventListener('click', cancelRename);
+
+    block.appendChild(label);
+    block.appendChild(input);
+    block.appendChild(errorElement);
+    block.appendChild(saveNameButton);
+    block.appendChild(cancelNameButton);
+    return block;
+  }
+
+  function createTemplateActions(item) {
+    var actions = document.createElement('div');
+    var loadButton = document.createElement('button');
+    var renameButton = document.createElement('button');
+    var deleteButton = document.createElement('button');
+
+    actions.className = 'template-actions';
+    actions.setAttribute('role', 'group');
+    actions.setAttribute('aria-label', 'Acciones de ' + item.name);
+
+    loadButton.type = 'button';
+    loadButton.className = 'template-action';
+    loadButton.textContent = 'Cargar';
+    loadButton.setAttribute('aria-label', 'Cargar la plantilla ' + item.name);
+    loadButton.addEventListener('click', function () {
+      onUseTemplate(item.name);
+    });
+
+    renameButton.type = 'button';
+    renameButton.className = 'template-action';
+    renameButton.textContent = 'Renombrar';
+    renameButton.setAttribute('aria-label', 'Renombrar la plantilla ' + item.name);
+    renameButton.addEventListener('click', function () {
+      startRename(item.name);
+    });
+
+    deleteButton.type = 'button';
+    deleteButton.className = 'template-action';
+    deleteButton.textContent = 'Borrar';
+    deleteButton.setAttribute('aria-label', 'Borrar la plantilla ' + item.name);
+    deleteButton.addEventListener('click', function () {
+      onRemoveTemplate(item.name);
+    });
+
+    actions.appendChild(loadButton);
+    actions.appendChild(renameButton);
+    actions.appendChild(deleteButton);
+    return actions;
+  }
+
+  function createTemplateCard(item) {
+    var card = document.createElement('li');
+    var nameElement = document.createElement('p');
+    var summary = document.createElement('p');
+    var badge;
+
+    card.className = 'template-card';
+
+    nameElement.className = 'template-name';
+    nameElement.textContent = item.name;
+
+    summary.className = 'template-buttons-label';
+    summary.textContent = 'Botones: ' + buttonsSummary(item.buttons);
+
+    card.appendChild(nameElement);
+    if (item.isLastUsed) {
+      badge = document.createElement('p');
+      badge.className = 'template-badge';
+      badge.textContent = 'Última usada';
+      card.appendChild(badge);
+    }
+    card.appendChild(summary);
+    if (renamingName === item.name) {
+      card.appendChild(createRenameBlock());
+    } else {
+      card.appendChild(createTemplateActions(item));
+    }
+    return card;
+  }
+
+  function renderTemplateList() {
+    var items = repo.listTemplates();
+    var index;
+    clearChildren(templateList);
+    templateEmpty.hidden = items.length > 0;
+    for (index = 0; index < items.length; index += 1) {
+      templateList.appendChild(createTemplateCard(items[index]));
+    }
+  }
+
   function openConfig() {
     calculatorScreen.hidden = true;
+    templatesScreen.hidden = true;
     configScreen.hidden = false;
     renderConfigNote();
     renderConfigList();
@@ -306,10 +590,29 @@ function initApp() {
 
   function closeConfig() {
     configScreen.hidden = true;
+    templatesScreen.hidden = true;
     calculatorScreen.hidden = false;
     renderSumButtons();
     scrollListToEnd(listElement);
     openConfigButton.focus();
+  }
+
+  function openTemplates() {
+    calculatorScreen.hidden = true;
+    configScreen.hidden = true;
+    templatesScreen.hidden = false;
+    showStorageWarning(repo.getWarning());
+    renderTemplateList();
+    templateNameInput.focus();
+  }
+
+  function closeTemplates() {
+    templatesScreen.hidden = true;
+    calculatorScreen.hidden = true;
+    configScreen.hidden = false;
+    renderConfigNote();
+    renderConfigList();
+    openTemplatesButton.focus();
   }
 
   function onSubmit(event) {
@@ -332,19 +635,44 @@ function initApp() {
     valueInput.focus();
   }
 
+  function onTemplateSubmit(event) {
+    var result;
+    event.preventDefault();
+    result = repo.saveTemplate(templateNameInput.value, buttons);
+    showStorageWarning(result.warning);
+    if (!result.ok) {
+      showTemplateNameError(result.error);
+      setTemplateStatus('');
+      templateNameInput.focus();
+      return;
+    }
+    showTemplateNameError('');
+    templateNameInput.value = '';
+    renamingName = null;
+    renameDraft = '';
+    renameError = '';
+    setTemplateStatus('Plantilla guardada. Si cambias los botones, la plantilla no se modifica.');
+    renderTemplateList();
+    templateNameInput.focus();
+  }
+
   removeButton = createRemoveButton(removeLastValue);
   undoElement.appendChild(removeButton);
   resetElement.appendChild(createResetButton(resetAll));
   renderSumButtons();
   paint();
+  showStorageWarning(repo.getWarning());
 
   openConfigButton.addEventListener('click', openConfig);
+  openTemplatesButton.addEventListener('click', openTemplates);
   backButton.addEventListener('click', closeConfig);
+  templatesBackButton.addEventListener('click', closeTemplates);
   cancelButton.addEventListener('click', function () {
     exitEditMode();
     valueInput.focus();
   });
   form.addEventListener('submit', onSubmit);
+  templateForm.addEventListener('submit', onTemplateSubmit);
 }
 
 initApp();
