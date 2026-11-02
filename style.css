@@ -1,6 +1,7 @@
 /* Calculadora para profesores — estilos (T-001, botones en T-003,
    borrar y reiniciar en T-004, pantalla móvil en vertical en T-005,
-   botones del profesor en T-008, plantillas en T-009).
+   botones del profesor en T-008, plantillas en T-009, actualizar
+   la plantilla en uso en T-010).
    Una sola columna a la altura de la pantalla: el total arriba, la
    lista en el medio (única zona con scroll) y los botones abajo.
    La rejilla de suma es de 3 columnas: entre 320 y 430 px cada
@@ -504,6 +505,27 @@ input:focus {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.3;
+}
+
+/* Nombre de la plantilla en uso y «Actualizar plantilla»: fuera de
+   la lista que se desplaza, para que sigan a la vista. */
+.template-current {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+#template-in-use {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+#template-update:disabled {
+  color: var(--muted);
+  border-style: dotted;
 }
 
 .template-list {
